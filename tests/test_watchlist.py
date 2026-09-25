@@ -36,3 +36,14 @@ def test_invalid_target_rejected(tmp_path, body):
 def test_open_at_with_explicit_timezone_is_converted_not_overwritten(tmp_path, text):
     p = write(tmp_path, f"targets:\n  - shop: x\n    dates: [2026-12-24]\n    party: 2\n    open_at: {text}\n")
     assert load(p)[0].open_at == datetime(2026, 10, 1, 14, 0, tzinfo=KST)
+
+
+def test_times_and_table_for_auto_mode(tmp_path):
+    p = write(tmp_path, "targets:\n  - shop: x\n    dates: [2026-12-24]\n    party: 2\n    times: ['18:00', '18:30']\n    table: 홀\n")
+    t = load(p)[0]
+    assert t.times == ("18:00", "18:30") and t.table == "홀"
+
+
+def test_times_must_be_hh_mm(tmp_path):
+    with pytest.raises(ValueError):
+        load(write(tmp_path, "targets:\n  - shop: x\n    dates: [2026-12-24]\n    party: 2\n    times: [18]\n"))

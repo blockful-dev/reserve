@@ -10,3 +10,4 @@ web/.env.local
 web/next-env.d.ts
 watchlist.yaml
 .omc/
+profile/

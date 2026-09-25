@@ -166,16 +166,72 @@ def collect_main(args: list[str]) -> None:
             sys.exit(1)
 
 
+def run_auto(items: list[Item], client: Client) -> None:
+    """--auto: 로그인된 Chromium을 T-60s에 미리 띄워두고, 감지되면 그 창에서 예약하기 직전까지 자동으로 간다.
+    최종 클릭은 사람이 한다. 단순화를 위해 한 번에 한 (오픈 시각, 식당)만 다룬다 — 자동 클릭은 창 하나를 쓰기 때문."""
+    from playwright.sync_api import sync_playwright
+    from ctwatch.book import book, open_browser
+
+    units = groups(items, now())
+    if not units:
+        sys.exit("기다릴 오픈이 없습니다.")
+    if len(units) > 1:
+        print(f"⚠️  --auto는 첫 단위만 자동 처리합니다: {units[0][2][0].shop} {units[0][0]:%m-%d %H:%M}. 나머지 {len(units) - 1}개는 이 파일을 나눠 따로 실행하세요.")
+    open_at, ref, targets = units[0]
+    target = targets[0]
+    subprocess.Popen(["caffeinate", "-i", "-w", str(os.getpid())])
+    with sync_playwright() as p:
+        ctx, page = open_browser(p)
+
+        def prepare_auto(t: Target, ok: bool) -> None:
+            page.goto(deeplink(t.shop, t.dates[0], t.party), wait_until="domcontentloaded")  # 캐시 예열 + 로그인 확인
+            logged = any(c["name"] == "x-ct-a" for c in ctx.cookies())
+            print(f"[{now():%H:%M:%S}] {t.shop} — 자동 모드 준비. 로그인 {'OK' if logged else '❌ 안 됨: scripts/login.py 먼저'}", flush=True)
+            if not ok or not logged:
+                alert(t.shop, "자동 모드 준비 실패 — 직접 할 준비를 하세요", "Basso")
+
+        def finish_auto(t: Target, d: date, msg: str) -> None:
+            alert(f"{t.shop} {d:%m/%d}", msg, "Glass")
+            print(f"[{now():%H:%M:%S.%f}] {t.shop} {d:%m/%d} {t.party}명 — {msg} → 자동 진행", flush=True)
+            try:
+                r = book(page, deeplink(t.shop, d, t.party), times=list(t.times) or None, table=t.table, log=print)
+            except Exception as e:
+                r = type("R", (), {"ok": False, "step": "error", "detail": repr(e)})()
+            print(f"[{now():%H:%M:%S.%f}] {'✅ 예약하기 직전까지 완료 — 지금 누르세요!' if r.ok else '❌ ' + r.step + ': ' + r.detail}", flush=True)
+            alert(t.shop, "지금 예약하기를 누르세요!" if r.ok else f"자동 진행 실패({r.step}) — 직접 하세요", "Glass" if r.ok else "Basso")
+
+        def alarm_auto(t: Target, d: date, when: datetime, msg: str) -> None:
+            sleep_until(when, now, time.sleep)
+            finish_auto(t, d, msg)
+
+        print(f"[{now():%m-%d %H:%M:%S}] {target.shop} {open_at:%m-%d %H:%M:%S} 오픈 대기 중 (자동 모드, 예약하기 직전까지)… Ctrl+C로 중단", flush=True)
+        watch(targets, ref, open_at, client, now=now, sleep=time.sleep, finish=finish_auto, prepare=prepare_auto, alarm_at=alarm_auto)
+        print("창을 10분 동안 열어둡니다. 7분 예약 찜 안에 예약하기를 누르세요.", flush=True)
+        time.sleep(600)
+        ctx.close()
+
+
 def main() -> None:
     if len(sys.argv) >= 2 and sys.argv[1] == "collect":
         return collect_main(sys.argv[2:])
-    if len(sys.argv) != 3 or sys.argv[1] not in ("check", "run"):
-        sys.exit("사용법: ctwatch check|run <watchlist.yaml>  |  ctwatch collect [auto|list|schedules|all|health] [--limit N]")
+    if len(sys.argv) >= 5 and sys.argv[1] == "book":  # ctwatch book <alias> <YYYY-MM-DD> <인원> [HH:MM,HH:MM] [홀|테라스]
+        from ctwatch.book import run
+        alias, d, party = sys.argv[2], date.fromisoformat(sys.argv[3]), int(sys.argv[4])
+        times = sys.argv[5].split(",") if len(sys.argv) > 5 and sys.argv[5] else None
+        r = run(deeplink(alias, d, party), times=times, table=sys.argv[6] if len(sys.argv) > 6 else None)
+        print(f"결과: {'준비 완료' if r.ok else '실패'} [{r.step}] {r.detail}")
+        sys.exit(0 if r.ok else 1)
+    auto = "--auto" in sys.argv
+    argv = [a for a in sys.argv if a != "--auto"]
+    if len(argv) != 3 or argv[1] not in ("check", "run"):
+        sys.exit("사용법: ctwatch check|run <watchlist.yaml> [--auto]  |  ctwatch collect [auto|list|schedules|all|health] [--limit N]  |  ctwatch book <alias> <날짜> <인원> [HH:MM,..] [홀]")
     client = Client()
-    items, unknown, failed = plan(load(sys.argv[2]), client)
+    items, unknown, failed = plan(load(argv[2]), client)
     report(items, unknown, failed, client)
-    if sys.argv[1] == "check":
+    if argv[1] == "check":
         sys.exit(1 if failed else 0)
+    if auto:
+        return run_auto(items, client)
 
     units = groups(items, now())
     if not units:

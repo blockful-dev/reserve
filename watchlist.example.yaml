@@ -1,6 +1,12 @@
-# 복사해서 watchlist.yaml로 쓰세요.  ctwatch check watchlist.yaml  →  ctwatch run watchlist.yaml
+# 복사해서 watchlist.yaml로 쓰세요.
+#   ctwatch check watchlist.yaml          오픈 시각 계산만
+#   ctwatch run   watchlist.yaml          감지 → 알림 + 예약 페이지 오픈 (시간 선택부터 사람이)
+#   ctwatch run   watchlist.yaml --auto   감지 → 로그인된 창에서 시간·테이블·결제방식·필수 체크까지 자동 → '예약하기' 직전에 멈춤 (최종 클릭은 사람)
+#                                         --auto 전에 한 번: .venv/bin/python scripts/login.py
 targets:
   - shop: mingles            # 식당 주소의 끝부분: app.catchtable.co.kr/ct/shop/<여기>
     dates: [2026-12-24, 2026-12-25]   # 앞에 있을수록 우선
     party: 2
+    times: ['18:00', '18:30', '19:00'] # --auto에서 누를 시간 우선순위. 비우면 열린 것 중 첫 번째
+    table: 홀                          # 테이블 타입 선택이 뜨는 식당만. 비우면 첫 번째
     # open_at: 2026-10-01 14:00      # check가 "자동 계산할 수 없습니다"라고 할 때만

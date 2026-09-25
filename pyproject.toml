@@ -3,7 +3,12 @@ name = "ctwatch"
 version = "0.1.0"
 description = "캐치테이블 오픈런 감시기 — 열리면 알리고 예약 페이지를 띄운다. 확정은 사람이."
 requires-python = ">=3.11"
-dependencies = ["curl_cffi", "pyyaml", "psycopg[binary]"]
+dependencies = [
+    "curl_cffi",
+    "pyyaml",
+    "psycopg[binary]",
+    "playwright>=1.63.0",
+]
 
 [project.scripts]
 ctwatch = "ctwatch.__main__:main"
