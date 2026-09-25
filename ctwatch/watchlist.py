@@ -16,6 +16,7 @@ class Target:
     open_at: datetime | None = None  # 오픈 일정을 자동 계산할 수 없는 식당만
     times: tuple[str, ...] = ()  # 자동 모드에서 누를 시간 우선순위 ("18:00"). 비면 열린 것 중 첫 번째
     table: str | None = None  # 테이블 타입 선택이 뜨는 식당에서 고를 이름 ("홀"). 비면 첫 번째
+    pay: str = "직접"  # '결제 방식 선택'이 뜨는 식당: 직접(매장에서 직접 결제) | 자동(캐치페이 자동결제)
 
 
 def load(path) -> list[Target]:
@@ -38,4 +39,4 @@ def _target(t: dict) -> Target:
     times = tuple(str(x) for x in (t.get("times") or ()))
     if any(not isinstance(x, str) or len(x.split(":")) != 2 for x in times):
         raise ValueError(f"times는 'HH:MM' 목록이어야 합니다: {t}")
-    return Target(t["shop"], dates, t["party"], open_at, times, t.get("table"))
+    return Target(t["shop"], dates, t["party"], open_at, times, t.get("table"), t.get("pay") or "직접")

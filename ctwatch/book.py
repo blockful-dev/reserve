@@ -32,10 +32,39 @@ def time_label(hhmm: str) -> str:
     return f"{'오전' if h < 12 else '오후'} {h if h <= 12 else h - 12}:{m:02d}"
 
 
+def dismiss_popups(page: Page, log=lambda m: None) -> None:
+    """사이트 전역 광고 팝업(#popup)과 제목 없는 홍보 모달을 닫는다. 클릭을 가로막는 주범."""
+    for scope in (page.locator("#popup"), page.get_by_role("dialog")):
+        for b in scope.get_by_role("button", name=re.compile(r"^(닫기|다음에.*|오늘 하루 보지 않기|7일간 보지 않기|그만 보기)$")).all():
+            try:
+                if b.is_visible():
+                    b.click(timeout=1500); log("팝업 닫기"); page.wait_for_timeout(200)
+            except PWTimeout:
+                pass
+    if page.locator("#popup").count() and page.locator("#popup").is_visible():
+        page.evaluate("() => { const p = document.querySelector('#popup'); if (p) p.style.display = 'none'; }")
+        log("팝업 숨김")
+
+
+def _click(loc) -> None:
+    try:
+        loc.click(timeout=4000)
+    except PWTimeout:  # 겹치는 요소 때문에 막히면 좌표로
+        loc.click(force=True)
+
+
 def pick_time(page: Page, times: list[str] | None, log) -> str | None:
     """선호 시간 순서대로 눌러본다. 비어 있으면 열린 것 중 첫 번째."""
     slots = page.get_by_role("button", name=re.compile(r"^오[전후] \d{1,2}:\d{2}$"))
-    slots.first.wait_for(state="visible", timeout=8000)
+    try:
+        slots.first.wait_for(state="visible", timeout=6000)
+    except PWTimeout:
+        log("시간 버튼이 없음 — 그 날짜는 예약 불가/마감이거나 오픈 전")
+        return None
+    for _ in range(20):  # 가용성 로딩 중(data-busy)이면 잠깐 기다린다
+        if not page.locator("button[data-busy='true']").count():
+            break
+        page.wait_for_timeout(250)
     enabled = [b for b in slots.all() if not b.is_disabled()]
     names = [b.inner_text().strip() for b in enabled]
     log(f"열린 시간: {names}")
@@ -43,63 +72,137 @@ def pick_time(page: Page, times: list[str] | None, log) -> str | None:
         want = time_label(t)
         for b in enabled:
             if b.inner_text().strip() == want:
-                b.click()
+                _click(b)
                 return want
     if not times and enabled:
-        enabled[0].click()
+        _click(enabled[0])
         return names[0]
     return None
 
 
-def book(page: Page, url: str, *, times: list[str] | None = None, table: str | None = None, log=print, submit: bool = False) -> Result:
+def describe_dialog(box) -> dict:
+    return {"title": box.get_attribute("aria-label") or "",
+            "radios": [r.get_attribute("aria-label") or r.inner_text().strip()[:30] for r in box.get_by_role("radio").all()],
+            "checkboxes": [c.get_attribute("aria-label") or "" for c in box.get_by_role("checkbox").all()],
+            "buttons": [b.inner_text().strip().replace("\n", " ")[:24] for b in box.get_by_role("button").all() if b.is_visible()],
+            "inputs": [(i.get_attribute("type"), i.get_attribute("placeholder") or i.get_attribute("name") or "") for i in box.locator("input,textarea,select").all() if i.is_visible()],
+            "text": box.inner_text().replace("\n", " | ")[:1600]}
+
+
+def book(page: Page, url: str, *, times: list[str] | None = None, table: str | None = None, pay: str = "직접", log=print, submit: bool = False, trace=lambda e: None) -> Result:
+    party = int(re.search(r"personCount=(\d+)", url).group(1)) if re.search(r"personCount=(\d+)", url) else 2
     t0 = time.perf_counter()
     lg = lambda m: log(f"[+{time.perf_counter() - t0:5.2f}s] {m}")
     page.goto(url, wait_until="domcontentloaded")
+    page.wait_for_timeout(800)
+    dismiss_popups(page, lg)
     chosen = pick_time(page, times, lg)
     if not chosen:
+        trace({"kind": "no-time", **describe_dialog(page.locator("body"))})
         return Result(False, "time", "원하는 시간이 열려 있지 않음")
     lg(f"시간 선택: {chosen}")
 
-    for _ in range(6):  # 드로어/모달을 뜬 순서대로 처리하다 폼에 도착하면 빠져나온다
+    idle = 0
+    for _ in range(10):  # 드로어/모달을 뜬 순서대로 처리하다 폼에 도착하면 빠져나온다
         page.wait_for_timeout(300)
         if FORM in page.url:
             break
         dialogs = [d for d in page.get_by_role("dialog").all() if d.is_visible()]
         if not dialogs:
+            idle += 1
+            dismiss_popups(page, lg)
+            if idle == 1 and page.get_by_role("button", name="닫기").filter(visible=True).count():
+                # 시간 클릭이 날짜·인원·시간 선택 시트를 여는 레이아웃: 시트 안의 시간 칩(뒤쪽에 그려짐)을 다시 누른다
+                chips = [c for c in page.get_by_role("button", name=re.compile(r"^오[전후] \d{1,2}:\d{2}$")).all() if c.is_visible() and not c.is_disabled()]
+                sheet_chips = chips[len(chips) // 2:] if len(chips) > 1 else chips
+                pick = next((c for t in (times or []) for c in sheet_chips if c.inner_text().strip() == time_label(t)), sheet_chips[0] if sheet_chips else None)
+                if pick is not None:
+                    _click(pick); lg(f"시트에서 시간 선택: {pick.inner_text().strip()}"); continue
+            if idle == 2:  # 시간을 골라도 드로어가 안 뜨는 레이아웃: 식당 페이지의 '예약하기' 버튼을 눌러야 진행된다
+                go = page.get_by_role("button", name=re.compile(r"^예약하기$")).first
+                if go.count() and go.is_visible() and not go.is_disabled():
+                    _click(go); lg("예약하기 버튼(식당 페이지)")
             page.wait_for_timeout(700)
             continue
+        idle = 0
+        if page.locator("#popup").count() and page.locator("#popup").is_visible():
+            dismiss_popups(page, lg)
         box = dialogs[-1]
         title = box.get_attribute("aria-label") or ""
+        trace({"kind": "dialog", **describe_dialog(box)})
         close = box.get_by_role("button", name="닫기")
-        if not title and close.count():  # 홍보 모달 ("예약금 0원 결제란?")
-            close.click(); lg("모달 닫기"); continue
-        radios = box.get_by_role("radio")
-        if radios.count():
-            want = None
-            if "테이블" in title and table:
-                want = box.get_by_role("radio", name=table)
-            elif "결제" in title:
-                want = box.get_by_role("radio", name=re.compile("0원"))
-            target = want if want is not None and want.count() else radios.first
-            if not target.is_checked():
-                target.click()
-            lg(f"{title}: {target.get_attribute('aria-label')}")
-        nxt = box.get_by_role("button", name="다음")
-        if nxt.count():
-            nxt.click()
+        if not title and close.count():  # 홍보 모달 ("예약금 0원 결제란?", "전액 할인의 주인공은…")
+            _click(close); lg("모달 닫기"); continue
+        if "메뉴" in title:  # 메뉴 선택: 첫 메뉴를 인원수만큼 담는다 (예약하기 직전에 사람이 바꿀 수 있다)
+            plus = box.locator("button.plus, button[aria-label$='수량 추가']").first
+            try:
+                plus.wait_for(state="visible", timeout=3000)  # 메뉴 목록이 늦게 그려진다
+                for _ in range(party):
+                    _click(plus); page.wait_for_timeout(120)
+                lg(f"{title}: 첫 메뉴 × {party}")
+            except PWTimeout:  # 수량형이 아니라 코스 카드 선택형: 가격이 적힌 첫 항목을 누른다
+                card = box.locator("li, [class*=item]").filter(has_text=re.compile(r"\d,\d{3}원")).first
+                if not card.count():
+                    trace({"kind": "stuck-dialog", **describe_dialog(box)})
+                    return Result(False, "dialog", "메뉴 선택: 수량 버튼도 코스 항목도 찾지 못함")
+                _click(card); page.wait_for_timeout(200)
+                lg(f"{title}: 첫 코스 선택")
+        elif "결제 방식" in title:  # 자동결제 vs 매장에서 직접 결제
+            want = box.locator("label").filter(has_text=re.compile("자동결제" if pay == "자동" else "직접 결제")).first
+            radio = want.locator("input[type=radio]").first
+            SEQ = "el => { for (const t of ['pointerdown','mousedown','pointerup','mouseup','click']) el.dispatchEvent(new MouseEvent(t, {bubbles: true})); }"
+            # readonly 라디오라 click()으론 안 바뀐다. 바뀔 때까지 방법을 바꿔가며 시도하고 확인한다
+            for how, act in (("label events", lambda: want.evaluate(SEQ)), ("input events", lambda: radio.evaluate(SEQ)),
+                             ("좌표 클릭", lambda: (lambda b: page.mouse.click(b["x"] + b["width"] / 2, b["y"] + b["height"] / 2))(want.bounding_box())),
+                             ("키보드", lambda: (radio.focus(), page.keyboard.press("Space")))):
+                if want.count() and radio.is_checked():
+                    break
+                try:
+                    act(); page.wait_for_timeout(250)
+                except Exception:
+                    pass
+            lg(f"라디오 상태: {[r.is_checked() for r in box.get_by_role('radio').all()]}")
+            lg(f"{title}: {'자동결제' if pay == '자동' else '매장에서 직접 결제'}")
         else:
+            radios = box.get_by_role("radio")
+            if radios.count():
+                want = None
+                if "테이블" in title and table:
+                    cand = box.get_by_role("radio", name=table)
+                    want = cand if cand.count() else None
+                elif "결제" in title:
+                    want = box.get_by_role("radio", name=re.compile("0원"))
+                target = want if want is not None and want.count() else radios.first
+                if not target.is_checked():
+                    _click(target)
+                lg(f"{title}: {target.get_attribute('aria-label')}")
+        nxt = box.get_by_role("button", name=re.compile(r"^(다음|확인)$"))
+        if not nxt.count():
+            trace({"kind": "unknown-dialog", **describe_dialog(box)})
             return Result(False, "dialog", f"처리 못 한 드로어: {title}")
+        if nxt.last.is_disabled() and box.get_by_role("radio").count():  # 고른 옵션이 막혀 있으면(만석 등) 다른 옵션을 순서대로
+            for r in box.get_by_role("radio").all():
+                _click(r); page.wait_for_timeout(200)
+                if not nxt.last.is_disabled():
+                    lg(f"{title}: 대신 {r.get_attribute('aria-label')}"); break
+        if nxt.last.is_disabled():
+            trace({"kind": "stuck-dialog", **describe_dialog(box)})
+            return Result(False, "dialog", f"진행 버튼이 비활성: {title}")
+        _click(nxt.last)
     if FORM not in page.url:
         return Result(False, "dialog", f"폼에 도달하지 못함: {page.url}")
 
-    submit_btn = page.get_by_role("button", name="예약하기")
-    submit_btn.wait_for(state="visible", timeout=8000)
     page.wait_for_timeout(500)
-    for b in page.locator("#overlay").get_by_role("button", name=re.compile("닫기|보지 않기")).all():  # 홍보 팝업이 폼 위에도 뜬다
+    dismiss_popups(page, lg)
+    exact = page.get_by_role("button", name=re.compile(r"^(예약하기|예약 신청)$"))  # 업셀 모달의 '자동결제로 예약하기'보다 본 버튼 우선
+    submit_btn = exact.last if exact.count() else page.get_by_role("button", name=re.compile(r"예약하기|예약 신청|결제하기")).last
+    submit_btn.wait_for(state="visible", timeout=8000)
+    trace({"kind": "form", "url": page.url, **describe_dialog(page.locator("body"))})
+    for b in page.get_by_role("dialog").get_by_role("button", name=re.compile(r"^(닫기|다음에.*|7일간 보지 않기)$")).all():  # 홍보 팝업이 폼 위에도 뜬다
         if b.is_visible():
             b.click(); lg("폼 위 팝업 닫기"); page.wait_for_timeout(300)
-    if page.get_by_text(re.compile("결제 수단")).count() and not page.get_by_text("혜택 적용 중").count():
-        return Result(False, "form", "예약금 0원 혜택이 적용되지 않음 — 실결제가 필요해 보여 멈춤")
+    if "결제하기" in submit_btn.inner_text():  # 예약금 실결제(PG)는 자동화하지 않는다
+        return Result(False, "form", f"실결제 필요: '{submit_btn.inner_text().strip()}' — 결제는 직접")
     # 동의 항목은 readonly input이라 라벨 텍스트를 눌러야 바뀐다. '모두 동의합니다.'가 약관 전부를 켜고,
     # 매장 유의사항 [필수]는 별도 라벨(label.label-checkbox). 방문 목적(선택)은 건드리지 않는다.
     required = page.locator("label").filter(has=page.locator("input[type=checkbox]")).filter(has_text=re.compile(r"\[필수\]"))
@@ -109,9 +212,9 @@ def book(page: Page, url: str, *, times: list[str] | None = None, table: str | N
         lab.evaluate("el => el.click()")  # 겹치는 요소·화면 밖 여부와 무관하게 클릭 이벤트만 보낸다
         page.wait_for_timeout(250)
         # 취소 수수료 정책 항목은 "정책 확인하셨죠? → 네, 확인했어요" 모달을 눌러야 비로소 체크된다
-        confirm = page.get_by_role("dialog").get_by_role("button", name=re.compile("확인했어요|확인"))
-        if confirm.count() and confirm.last.is_visible():
-            confirm.last.click(); lg(f"확인 모달: {lab.inner_text().strip()[:20]}"); page.wait_for_timeout(250)
+        confirm = [b for b in page.get_by_role("dialog").get_by_role("button", name=re.compile(r"확인했어요|^확인$")).all() if b.is_visible()]
+        if confirm:
+            confirm[-1].click(); lg(f"확인 모달: {lab.inner_text().strip()[:20]}"); page.wait_for_timeout(250)
     missing = [lab.inner_text().strip()[:40] for lab in required.all() if not lab.locator("input").is_checked()]
     if missing:
         return Result(False, "form", f"필수 항목이 체크되지 않음: {missing}")
@@ -120,7 +223,7 @@ def book(page: Page, url: str, *, times: list[str] | None = None, table: str | N
         return Result(False, "form", "예약하기 버튼이 활성화되지 않음 (체크 누락?)")
     if not submit:  # 기본. 최종 클릭은 사람이 한다 — 검증용 예약·취소 반복은 계정 제재 사유
         submit_btn.scroll_into_view_if_needed()
-        return Result(True, "ready", "예약하기 직전 — 창에서 버튼을 누르세요")
+        return Result(True, "ready", f"'{submit_btn.inner_text().strip()}' 직전 — 창에서 버튼을 누르세요")
     submit_btn.click()
     lg("예약하기 클릭")
     try:

@@ -200,7 +200,7 @@ def run_auto(items: list[Item], client: Client) -> None:
             alert(f"{t.shop} {d:%m/%d}", msg, "Glass")
             print(f"[{now():%H:%M:%S.%f}] {t.shop} {d:%m/%d} {t.party}명 — {msg} → 자동 진행", flush=True)
             try:
-                r = book(page, deeplink(t.shop, d, t.party), times=list(t.times) or None, table=t.table, log=print)
+                r = book(page, deeplink(t.shop, d, t.party), times=list(t.times) or None, table=t.table, pay=t.pay, log=print)
             except Exception as e:
                 r = type("R", (), {"ok": False, "step": "error", "detail": repr(e)})()
             print(f"[{now():%H:%M:%S.%f}] {'✅ 예약하기 직전까지 완료 — 지금 누르세요!' if r.ok else '❌ ' + r.step + ': ' + r.detail}", flush=True)
