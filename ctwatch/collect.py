@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 
 from psycopg import Connection
 
-from ctwatch.client import SEOUL_REGIONS, Client
+from ctwatch.client import CUISINE_TOP, SEOUL_REGIONS, Client
 
 RATE = 2.5  # 최소 요청 간격(초). 1.0 고정 간격으로 9천 건 돌린 뒤 IP가 Cloudflare에 차단됐다(2026-09-24)
 HOME_IP_PREFIXES = ("112.148.",)  # 집 회선. 한 번 차단된 적 있으니 여기서는 더 아낀다
@@ -87,16 +87,18 @@ def upsert_shop(conn: Connection, m: dict, region_code: str) -> bool:
     return row["inserted"]
 
 
-def sweep_list(conn: Connection, client: Client, sleep=time.sleep, regions: list[str] | None = None) -> Run:
+def sweep_list(conn: Connection, client: Client, sleep=time.sleep, regions: list[str] | None = None, foods: list[str] | None = None) -> Run:
     """서울 하위 지역 10개를 끝 페이지까지. 못 본 식당은 missed_sweeps+1, GONE_AFTER 이상이면 state='GONE'."""
     run = Run(conn, "list")
     seen, new, pages = set(), 0, 0
     try:
         # 하위 지역 10개만으로는 ~1,900곳이 빠진다(하위 코드 미부여 식당). 상위 코드 CAT011을 마지막에 한 번 더 훑어 채운다
-        for code in regions or [*SEOUL_REGIONS, "CAT011"]:
+        # (지역, 음식) 조합마다 끝까지. foods가 있으면 지역은 서울 전체(CAT011) 하나로 두고 음식으로 쪼갠다
+        combos = [("CAT011", f) for f in foods] if foods else [(r, None) for r in (regions or [*SEOUL_REGIONS, "CAT011"])]
+        for code, food in combos:
             offset = "0"
             while offset is not None:
-                metas, offset = client.search_page(code, offset)
+                metas, offset = client.search_page(code, offset, food)
                 pages += 1
                 for m in metas:
                     if m["shopRef"] in seen:
@@ -105,11 +107,11 @@ def sweep_list(conn: Connection, client: Client, sleep=time.sleep, regions: list
                     new += upsert_shop(conn, m, code)
                 sleep(pause())
         gone = 0
-        if not regions:  # 일부 지역만 훑은 경우엔 '못 봤다'를 판정할 수 없다
+        if not regions and not foods:  # 일부만 훑은 경우엔 '못 봤다'를 판정할 수 없다
             conn.execute("update shops set missed_sweeps = missed_sweeps + 1 where last_seen_at < (select started_at from runs where id=%s)", (run.id,))
             gone = conn.execute("update shops set state='GONE' where missed_sweeps >= %s and state is distinct from 'GONE' returning ref", (GONE_AFTER,)).rowcount
         conn.commit()
-        run.stats = {"pages": pages, "seen": len(seen), "new": new, "gone": gone}
+        run.stats = {"pages": pages, "seen": len(seen), "new": new, "gone": gone, "combos": len(combos)}
         run.finish(True)
     except Exception as e:
         run.stats = {"pages": pages, "seen": len(seen), "new": new}
@@ -187,14 +189,14 @@ def list_due(conn: Connection) -> bool:
     return r["t"] is None or r["t"] < now() - LIST_EVERY
 
 
-def collect(conn: Connection, client: Client, what: str = "auto", limit: int | None = None, ip=public_ip, regions: list[str] | None = None) -> list[Run]:
+def collect(conn: Connection, client: Client, what: str = "auto", limit: int | None = None, ip=public_ip, regions: list[str] | None = None, foods: list[str] | None = None) -> list[Run]:
     h = health(conn, client, ip)
     runs = [h]
     if not h.ok:
         return runs  # 차단 중: 두드리지 않는다. 다음 예약 실행(하루 뒤)에 다시 확인
     limit = budget(limit, h.stats.get("ip"))
     if what in ("list", "all") or (what == "auto" and list_due(conn)):
-        runs.append(sweep_list(conn, client, regions=regions))
+        runs.append(sweep_list(conn, client, regions=regions, foods=foods))
     if what in ("schedules", "all", "auto"):
         runs.append(sweep_schedules(conn, client, limit=limit))
     return runs

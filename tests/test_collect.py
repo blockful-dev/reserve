@@ -25,11 +25,11 @@ class FakeClient:
     def __init__(self, pages=None, schedules=None, fail_after=None):
         self.pages, self.schedules, self.fail_after, self.calls = pages or {}, schedules or {}, fail_after, 0
 
-    def search_page(self, code, offset="0"):
+    def search_page(self, code, offset="0", food=None):
         self.calls += 1
         if self.fail_after is not None and self.calls > self.fail_after:
             raise RuntimeError("HTTP 429")
-        return self.pages.get((code, offset), ([], None))
+        return self.pages.get((code, offset) if food is None else (code, food, offset), ([], None))
 
     def open_schedules(self, ref):
         self.calls += 1
@@ -143,3 +143,11 @@ def test_home_ip_gets_the_lower_cap():
 def test_pause_has_jitter_within_bounds():
     waits = {C.pause() for _ in range(200)}
     assert min(waits) >= C.RATE and max(waits) <= C.RATE * 2.5 and len(waits) > 50
+
+
+def test_food_partitioned_sweep_dedups_and_skips_gone_marking(conn):
+    C.upsert_shop(conn, meta("OLD"), "CAT011001")  # 이번 훑기에 안 보여도 부분 훑기라 GONE 판정하면 안 된다
+    fc = FakeClient(pages={("CAT011", "C_1", "0"): (PAGE[:3], None), ("CAT011", "C_4", "0"): (PAGE[2:], None)})
+    run = C.sweep_list(conn, fc, sleep=lambda s: None, foods=["C_1", "C_4"])
+    assert run.stats["new"] == 5 and run.stats["combos"] == 2 and run.stats["gone"] == 0
+    assert conn.execute("select state, missed_sweeps from shops where ref='OLD'").fetchone() == {"state": "A", "missed_sweeps": 0}

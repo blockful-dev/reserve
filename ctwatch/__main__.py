@@ -153,13 +153,18 @@ def collect_main(args: list[str]) -> None:
     what = next((a for a in args if not a.startswith("--")), "auto")
     limit = int(args[args.index("--limit") + 1]) if "--limit" in args else None
     regions = args[args.index("--regions") + 1].split(",") if "--regions" in args else None
+    foods = None
+    if "--foods" in args:  # --foods top → 대분류 8개, 아니면 코드 목록
+        from ctwatch.client import CUISINE_TOP
+        v = args[args.index("--foods") + 1]
+        foods = list(CUISINE_TOP) if v == "top" else v.split(",")
     conn = connect()
     if what == "health":
         from ctwatch.collect import health
         h = health(conn, Client())
         print(f"[{now():%m-%d %H:%M:%S}] health {'OK' if h.ok else 'BLOCKED'} ip={h.stats.get('ip')}", flush=True)
         sys.exit(0 if h.ok else 1)
-    for run in collect(conn, Client(), what, limit, regions=regions):
+    for run in collect(conn, Client(), what, limit, regions=regions, foods=foods):
         state = "OK" if run.ok else ("BLOCKED" if run.kind == "health" else "FAILED")
         print(f"[{now():%m-%d %H:%M:%S}] {run.kind} {state} {json.dumps(run.stats, ensure_ascii=False)}", flush=True)
         if not run.ok:

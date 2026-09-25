@@ -9,6 +9,9 @@ from curl_cffi import requests
 API = "https://ct-api.catchtable.co.kr"
 SEOUL_REGIONS = {f"CAT011{i:03d}": n for i, n in enumerate(
     ["강남", "서초", "잠실/송파/강동", "영등포/여의도/강서", "건대/성수/왕십리", "종로/중구", "홍대/합정/마포", "용산/이태원/한남", "성북/노원/중랑", "구로/관악/동작"], 1)}
+# 검색은 한 질의당 약 8,000건(314페이지)까지만 넘겨준다(관측). 서울 9,837곳을 다 보려면 질의를 쪼개야 하고,
+# 음식 대분류 8개(/api/v4/filters/resources/cuisines의 최상위 C 코드)가 전체를 덮는다.
+CUISINE_TOP = {"C_1": "한식", "C_3": "중식", "C_4": "일식", "C_21": "양식", "C_19": "아시아음식", "C_25": "멕시코,남미음식", "C_18": "퓨전음식", "C_17": "기타 세계음식"}
 Calendar = dict[date, tuple[str, list[int]]]  # 날짜 -> (status, 예약 가능 인원)
 LOOKUP_TIMEOUT = 2  # 시작 시 조회는 순차다. 멈춘 식당 하나가 나머지의 감시 시작을 오래 붙잡으면 안 된다 (평소 0.15s)
 POLL_TIMEOUT = 1.5  # 오픈 순간엔 서버가 가장 느리다. 멈춘 요청 하나에 5초씩 눈이 멀면 안 된다
@@ -69,12 +72,13 @@ class Client:
         r.raise_for_status()
         return r.json()
 
-    def search_page(self, region_code: str, offset: str = "0") -> tuple[list[dict], str | None]:
-        """지역 코드 하나의 검색 결과 한 페이지 (웹앱이 보내는 본문 그대로). (shopMeta 목록, 다음 offset|None)"""
+    def search_page(self, region_code: str, offset: str = "0", food_code: str | None = None) -> tuple[list[dict], str | None]:
+        """지역 코드(+음식 코드) 하나의 검색 결과 한 페이지 (웹앱이 보내는 본문 그대로). (shopMeta 목록, 다음 offset|None)"""
         body = {"paging": {"offset": offset, "size": 30}, "listType": "GENERAL", "reservationParams": {}, "notUseSpellCorrection": False,
                 "divideType": "DIVIDE_BY_AVAILABILITY", "sort": {"sortType": "recommended", "sortChunkSize": 5},
                 "userInfo": {"clientGeoPoint": {"lat": 37.5518333, "lon": 126.9887774}},
-                "filters": {"displayRegionCodes": [region_code], "legalDistrictCodes": [], "facilityCodes": [], "filterTags": [], "contractedType": "CONTRACTED_ONLY"},
+                "filters": {"displayRegionCodes": [region_code], "legalDistrictCodes": [], "facilityCodes": [], "filterTags": [], "contractedType": "CONTRACTED_ONLY",
+                            **({"foodKindCodes": [food_code]} if food_code else {})},
                 "recommendationModel": "bmk-cwse", "useRerank": True}
         d = self._post("/api/v7/search/list", body, timeout=LOOKUP_TIMEOUT * 5)["data"]
         metas = [s["shopMeta"] for s in d["shopResults"]["shops"]]
