@@ -11,3 +11,4 @@ web/next-env.d.ts
 watchlist.yaml
 .omc/
 profile/
+backups/

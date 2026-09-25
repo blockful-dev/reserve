@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>kr.ctwatch.collect</string>
+  <key>ProgramArguments</key><array><string>/Users/san/Codes/catchtable/.venv/bin/python</string><string>-u</string><string>-m</string><string>ctwatch</string><string>collect</string><string>--limit</string><string>250</string></array>
+  <key>WorkingDirectory</key><string>/Users/san/Codes/catchtable</string>
+  <key>StartCalendarInterval</key><array><dict><key>Hour</key><integer>4</integer><key>Minute</key><integer>7</integer></dict><dict><key>Hour</key><integer>16</integer><key>Minute</key><integer>7</integer></dict></array>
+  <key>StandardOutPath</key><string>/Users/san/Codes/catchtable/logs/collect.log</string>
+  <key>StandardErrorPath</key><string>/Users/san/Codes/catchtable/logs/collect.log</string>
+</dict></plist>
