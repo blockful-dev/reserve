@@ -48,9 +48,15 @@ export async function stats() {
     select (select count(*) from shops where service='DINING' and state is distinct from 'GONE') as dining,
            (select count(*) from shops where schedule_kind not in ('ALWAYS','NONE') and schedule_kind is not null and state is distinct from 'GONE') as openrun,
            (select count(*) from shops where service='DINING' and state is distinct from 'GONE' and (schedule_kind is null or schedule_kind='UNKNOWN')) as unknown,
-           (select to_char(max(finished_at) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') from runs where ok) as updated_at,
-           (select ok from runs where finished_at is not null order by finished_at desc limit 1) as last_ok`;
-  return { dining: Number(s.dining), openrun: Number(s.openrun), unknown: Number(s.unknown), updatedAt: s.updated_at as string | null, lastOk: s.last_ok as boolean | null };
+           (select to_char(max(finished_at) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') from runs where ok and kind <> 'health') as updated_at,
+           (select ok from runs where finished_at is not null and kind <> 'health' order by finished_at desc limit 1) as last_ok,
+           (select json_build_object('ok', ok, 'at', to_char(finished_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
+              from runs where kind = 'health' and finished_at is not null order by finished_at desc limit 1) as health`;
+  return {
+    dining: Number(s.dining), openrun: Number(s.openrun), unknown: Number(s.unknown),
+    updatedAt: s.updated_at as string | null, lastOk: s.last_ok as boolean | null,
+    health: s.health as { ok: boolean; at: string } | null,
+  };
 }
 
 export async function foods(): Promise<string[]> {

@@ -153,10 +153,15 @@ def collect_main(args: list[str]) -> None:
     what = next((a for a in args if not a.startswith("--")), "auto")
     limit = int(args[args.index("--limit") + 1]) if "--limit" in args else None
     conn = connect()
+    if what == "health":
+        from ctwatch.collect import health
+        h = health(conn, Client())
+        print(f"[{now():%m-%d %H:%M:%S}] health {'OK' if h.ok else 'BLOCKED'} ip={h.stats.get('ip')}", flush=True)
+        sys.exit(0 if h.ok else 1)
     for run in collect(conn, Client(), what, limit):
-        state = "OK" if run.conn.execute("select ok from runs where id=%s", (run.id,)).fetchone()["ok"] else "FAILED"
+        state = "OK" if run.ok else ("BLOCKED" if run.kind == "health" else "FAILED")
         print(f"[{now():%m-%d %H:%M:%S}] {run.kind} {state} {json.dumps(run.stats, ensure_ascii=False)}", flush=True)
-        if state == "FAILED":
+        if not run.ok:
             print("  ", run.conn.execute("select error from runs where id=%s", (run.id,)).fetchone()["error"], flush=True)
             sys.exit(1)
 
@@ -165,7 +170,7 @@ def main() -> None:
     if len(sys.argv) >= 2 and sys.argv[1] == "collect":
         return collect_main(sys.argv[2:])
     if len(sys.argv) != 3 or sys.argv[1] not in ("check", "run"):
-        sys.exit("사용법: ctwatch check|run <watchlist.yaml>  |  ctwatch collect [auto|list|schedules|all] [--limit N]")
+        sys.exit("사용법: ctwatch check|run <watchlist.yaml>  |  ctwatch collect [auto|list|schedules|all|health] [--limit N]")
     client = Client()
     items, unknown, failed = plan(load(sys.argv[2]), client)
     report(items, unknown, failed, client)

@@ -92,8 +92,9 @@ def test_due_shops_selection(conn):
     past = json.loads(json.dumps(MONTHLY)); past[0]["schedules"][0]["availableOpenDateTime"] = "2020-01-01T00:00:00+09:00"
     C.store_schedules(conn, "PAST", past)
     C.store_schedules(conn, "FUT", MONTHLY)
-    assert C.due_shops(conn, datetime(2026, 9, 23, tzinfo=timezone.utc)) == ["NEW", "PAST"]
-    assert sorted(C.due_shops(conn, datetime(2026, 9, 23, tzinfo=timezone.utc) + timedelta(days=31))) == ["ALW", "FUT", "NEW", "PAST"]
+    at = C.now()  # 확인 시각은 실제 시계(clock_timestamp)라 기준도 실제 시계여야 한다
+    assert C.due_shops(conn, at) == ["NEW", "PAST"]
+    assert sorted(C.due_shops(conn, at + timedelta(days=31))) == ["ALW", "FUT", "NEW", "PAST"]
 
 
 def test_schedules_failure_keeps_rows_saved_so_far_with_real_timestamps(conn):
@@ -105,3 +106,40 @@ def test_schedules_failure_keeps_rows_saved_so_far_with_real_timestamps(conn):
     assert conn.execute("select count(*) as n from open_events").fetchone()["n"] == 2
     checked = [x["schedule_checked_at"] for x in conn.execute("select schedule_checked_at from shops where ref in ('A1','A2') order by ref").fetchall()]
     assert checked[0] < checked[1]  # 식당마다 다른 시각 = 각자 커밋됨
+
+
+# ---- 건강 확인 · 요청 예산 (2026-09-24 IP 차단 이후) ----
+
+def test_health_records_ok_with_ip(conn):
+    class OkClient:
+        def shop(self, alias): return None
+    assert C.health(conn, OkClient(), ip=lambda: "1.2.3.4").ok is True
+    r = conn.execute("select kind, ok, stats from runs order by id desc limit 1").fetchone()
+    assert (r["kind"], r["ok"], r["stats"]["ip"]) == ("health", True, "1.2.3.4")
+
+
+def test_health_records_block(conn):
+    class Blocked:
+        def shop(self, alias): raise RuntimeError("HTTP Error 403")
+    assert C.health(conn, Blocked(), ip=lambda: "1.2.3.4").ok is False
+    assert conn.execute("select ok, error from runs order by id desc limit 1").fetchone()["ok"] is False
+
+
+def test_collect_does_nothing_while_blocked(conn):
+    C.upsert_shop(conn, meta("X"), "CAT011001")
+    class Blocked:
+        def shop(self, alias): raise RuntimeError("HTTP Error 403")
+        def open_schedules(self, ref): raise AssertionError("차단 중엔 조회하면 안 된다")
+    runs = C.collect(conn, Blocked(), "all", ip=lambda: "1.2.3.4")
+    assert [r.kind for r in runs] == ["health"]
+
+
+def test_home_ip_gets_the_lower_cap():
+    assert C.budget(500, "112.148.172.190") == 200
+    assert C.budget(500, "211.234.180.121") == 500
+    assert C.budget(100, "112.148.1.1") == 100
+
+
+def test_pause_has_jitter_within_bounds():
+    waits = {C.pause() for _ in range(200)}
+    assert min(waits) >= C.RATE and max(waits) <= C.RATE * 2.5 and len(waits) > 50

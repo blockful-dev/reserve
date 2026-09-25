@@ -1,14 +1,48 @@
 from __future__ import annotations
 
 import json
+import random
 import time
+import urllib.request
 from datetime import datetime, timedelta, timezone
 
 from psycopg import Connection
 
 from ctwatch.client import SEOUL_REGIONS, Client
 
-RATE = 2.5  # 요청 간격(초). 1.0으로 9천 건 돌린 뒤 IP가 Cloudflare에 차단됐다(2026-09-24) — 낮게 유지
+RATE = 2.5  # 최소 요청 간격(초). 1.0 고정 간격으로 9천 건 돌린 뒤 IP가 Cloudflare에 차단됐다(2026-09-24)
+HOME_IP_PREFIXES = ("112.148.",)  # 집 회선. 한 번 차단된 적 있으니 여기서는 더 아낀다
+HOME_CAP = 200
+
+
+def pause() -> float:
+    """기계적 리듬을 피하려고 RATE~RATE×2.5 사이 무작위 대기."""
+    return random.uniform(RATE, RATE * 2.5)
+
+
+def budget(limit: int | None, ip: str | None) -> int | None:
+    if ip and ip.startswith(HOME_IP_PREFIXES):
+        return min(limit or HOME_CAP, HOME_CAP)
+    return limit
+
+
+def public_ip() -> str | None:
+    try:
+        return urllib.request.urlopen("https://api.ipify.org", timeout=5).read().decode()
+    except Exception:
+        return None
+
+
+def health(conn: Connection, client: Client, ip=public_ip) -> Run:
+    """요청 1건으로 차단 여부 확인. 결과를 runs(kind='health')에 남겨 웹이 표시하고, 차단 중이면 수집을 건너뛴다."""
+    run = Run(conn, "health")
+    run.stats = {"ip": ip()}
+    try:
+        client.shop("mingles")
+        run.finish(True)
+    except Exception as e:
+        run.finish(False, repr(e))
+    return run
 LIST_EVERY = timedelta(days=7)
 RECHECK_EVERY = timedelta(days=30)
 GONE_AFTER = 2  # 연속으로 못 본 훑기 횟수
@@ -23,11 +57,12 @@ class Run:
     """runs 행 하나. 실패해도 그때까지 저장한 데이터는 그대로 남는다 (각 항목이 자기 트랜잭션)."""
 
     def __init__(self, conn: Connection, kind: str):
-        self.conn, self.kind, self.stats = conn, kind, {}
+        self.conn, self.kind, self.stats, self.ok = conn, kind, {}, None
         self.id = conn.execute("insert into runs (kind) values (%s) returning id", (kind,)).fetchone()["id"]
         conn.commit()
 
     def finish(self, ok: bool, error: str | None = None) -> None:
+        self.ok = ok
         self.conn.execute("update runs set finished_at=clock_timestamp(), ok=%s, stats=%s, error=%s where id=%s", (ok, json.dumps(self.stats), error, self.id))
         self.conn.commit()
 
@@ -68,7 +103,7 @@ def sweep_list(conn: Connection, client: Client, sleep=time.sleep) -> Run:
                         continue
                     seen.add(m["shopRef"])
                     new += upsert_shop(conn, m, code)
-                sleep(RATE)
+                sleep(pause())
         conn.execute("update shops set missed_sweeps = missed_sweeps + 1 where last_seen_at < (select started_at from runs where id=%s)", (run.id,))
         gone = conn.execute("update shops set state='GONE' where missed_sweeps >= %s and state is distinct from 'GONE' returning ref", (GONE_AFTER,)).rowcount
         conn.commit()
@@ -136,7 +171,7 @@ def sweep_schedules(conn: Connection, client: Client, sleep=time.sleep, limit: i
             kind = store_schedules(conn, ref, client.open_schedules(ref))
             kinds[kind] = kinds.get(kind, 0) + 1
             done += 1
-            sleep(RATE)
+            sleep(pause())
         run.stats = {"due": len(refs), "done": done, "kinds": kinds}
         run.finish(True)
     except Exception as e:
@@ -150,8 +185,12 @@ def list_due(conn: Connection) -> bool:
     return r["t"] is None or r["t"] < now() - LIST_EVERY
 
 
-def collect(conn: Connection, client: Client, what: str = "auto", limit: int | None = None) -> list[Run]:
-    runs = []
+def collect(conn: Connection, client: Client, what: str = "auto", limit: int | None = None, ip=public_ip) -> list[Run]:
+    h = health(conn, client, ip)
+    runs = [h]
+    if not h.ok:
+        return runs  # 차단 중: 두드리지 않는다. 다음 예약 실행(하루 뒤)에 다시 확인
+    limit = budget(limit, h.stats.get("ip"))
     if what in ("list", "all") or (what == "auto" and list_due(conn)):
         runs.append(sweep_list(conn, client))
     if what in ("schedules", "all", "auto"):

@@ -6,12 +6,13 @@ cd /Users/san/Codes/catchtable || exit 1
 mkdir -p logs
 {
   echo "=== $(date '+%F %T') realtest $name 시작 ==="
+  echo "ip=$(curl -s -m 5 https://api.ipify.org)"
   if [[ $name == selftest ]]; then
-    .venv/bin/python -u -m ctwatch check realtest-esquep.yaml
+    .venv/bin/python -u -m ctwatch check realtest-esquep.yaml; rc=$?
   else
-    .venv/bin/python -u scripts/realtest.py realtest-$name.yaml
+    .venv/bin/python -u scripts/realtest.py realtest-$name.yaml; rc=$?
   fi
-  echo "=== $(date '+%F %T') 종료 코드 $? ==="
+  echo "=== $(date '+%F %T') 종료 코드 $rc ==="
 } >> logs/realtest-$name.log 2>&1
 label=kr.ctwatch.realtest.$name
 rm -f ~/Library/LaunchAgents/$label.plist

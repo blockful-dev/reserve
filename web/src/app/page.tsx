@@ -27,6 +27,11 @@ export default async function Page({ searchParams }: PageProps<"/">) {
           {updated && <> · 갱신 {kstDate(updated)} {kstTime(updated)}</>}
           {s.lastOk === false && <span className="ml-1 text-amber-600"> · 마지막 수집 실패, 이전 데이터 표시 중</span>}
         </p>
+        {s.health && !s.health.ok && (
+          <p className="mt-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+            캐치테이블 API 차단 중 ({kstDate(new Date(s.health.at))} {kstTime(new Date(s.health.at))} 확인) — 예약 페이지가 빈 화면일 수 있습니다. IP를 바꾸면 풀립니다.
+          </p>
+        )}
       </header>
       <Suspense><Filters key={one(p.q) ?? ""} foods={foodList} /></Suspense>
       <div className="mt-4">
