@@ -1,0 +1,104 @@
+{
+ "data": [
+  {
+   "date": "2026-09-22",
+   "availableStatus": "AVAILABLE",
+   "availablePersonCounts": [
+    2
+   ],
+   "benefit": null
+  },
+  {
+   "date": "2026-09-23",
+   "availableStatus": "AVAILABLE",
+   "availablePersonCounts": [
+    2
+   ],
+   "benefit": null
+  },
+  {
+   "date": "2026-09-24",
+   "availableStatus": "AVAILABLE",
+   "availablePersonCounts": [
+    2
+   ],
+   "benefit": null
+  },
+  {
+   "date": "2026-09-25",
+   "availableStatus": "DAY_OFF",
+   "availablePersonCounts": [],
+   "benefit": null
+  },
+  {
+   "date": "2026-09-26",
+   "availableStatus": "DAY_OFF",
+   "availablePersonCounts": [],
+   "benefit": null
+  },
+  {
+   "date": "2026-09-27",
+   "availableStatus": "DAY_OFF",
+   "availablePersonCounts": [],
+   "benefit": null
+  },
+  {
+   "date": "2026-09-28",
+   "availableStatus": "AVAILABLE",
+   "availablePersonCounts": [
+    2
+   ],
+   "benefit": null
+  },
+  {
+   "date": "2026-09-29",
+   "availableStatus": "AVAILABLE",
+   "availablePersonCounts": [
+    2
+   ],
+   "benefit": null
+  },
+  {
+   "date": "2026-09-30",
+   "availableStatus": "AVAILABLE",
+   "availablePersonCounts": [
+    2
+   ],
+   "benefit": null
+  },
+  {
+   "date": "2026-10-01",
+   "availableStatus": "BEFORE_OPEN",
+   "availablePersonCounts": [],
+   "benefit": null
+  },
+  {
+   "date": "2026-10-02",
+   "availableStatus": "BEFORE_OPEN",
+   "availablePersonCounts": [],
+   "benefit": null
+  },
+  {
+   "date": "2026-10-03",
+   "availableStatus": "BEFORE_OPEN",
+   "availablePersonCounts": [],
+   "benefit": null
+  },
+  {
+   "date": "2026-10-04",
+   "availableStatus": "DAY_OFF",
+   "availablePersonCounts": [],
+   "benefit": null
+  },
+  {
+   "date": "2026-10-05",
+   "availableStatus": "BEFORE_OPEN",
+   "availablePersonCounts": [],
+   "benefit": null
+  }
+ ],
+ "resultCode": "OK",
+ "displayMessage": null,
+ "message": null,
+ "errors": null
+}

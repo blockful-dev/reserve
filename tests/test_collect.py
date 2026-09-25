@@ -1,0 +1,107 @@
+import json
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import pytest
+
+from ctwatch import collect as C
+from ctwatch.db import connect
+
+FX = Path(__file__).parent / "fixtures"
+PAGE = [s["shopMeta"] for s in json.loads((FX / "search_seoul_page.json").read_text())["data"]["shopResults"]["shops"]]
+MONTHLY = json.loads((FX / "open_schedules_monthly.json").read_text())
+ALWAYS = json.loads((FX / "open_schedules_always.json").read_text())
+
+
+@pytest.fixture
+def conn():
+    c = connect("postgresql://localhost/ctopen_test")
+    c.execute("truncate shops, open_events, runs restart identity cascade"); c.commit()
+    yield c
+    c.close()
+
+
+class FakeClient:
+    def __init__(self, pages=None, schedules=None, fail_after=None):
+        self.pages, self.schedules, self.fail_after, self.calls = pages or {}, schedules or {}, fail_after, 0
+
+    def search_page(self, code, offset="0"):
+        self.calls += 1
+        if self.fail_after is not None and self.calls > self.fail_after:
+            raise RuntimeError("HTTP 429")
+        return self.pages.get((code, offset), ([], None))
+
+    def open_schedules(self, ref):
+        self.calls += 1
+        if self.fail_after is not None and self.calls > self.fail_after:
+            raise RuntimeError("HTTP 429")
+        return self.schedules[ref]
+
+
+def meta(ref, name="가게", service="DINING"):
+    return {"shopRef": ref, "shopName": name, "urlPathAlias": ref.lower(), "landName": "청담", "foodKind": "한식", "mainService": service, "state": "A", "shopCoord": {"lat": 1.0, "lon": 2.0}, "images": []}
+
+
+def test_classify():
+    assert C.classify(MONTHLY)[0] == "MONTHLY_DATE" and len(C.classify(MONTHLY)[1]) == 1
+    assert C.classify(ALWAYS) == ("ALWAYS", [])
+    assert C.classify([]) == ("NONE", [])
+    assert C.classify([{"schedules": [{"scheduleType": "WEEKLY_X"}]}]) == ("UNKNOWN", [])
+
+
+def test_list_sweep_upserts_real_page_and_marks_gone_after_two_misses(conn):
+    fc = FakeClient(pages={("CAT011001", "0"): (PAGE, None)})
+    run = C.sweep_list(conn, fc, sleep=lambda s: None)
+    assert run.stats["new"] == 5 and conn.execute("select count(*) as n from shops").fetchone()["n"] == 5
+    ref = PAGE[0]["shopRef"]
+    fc.pages = {("CAT011001", "0"): (PAGE[1:], None)}
+    C.sweep_list(conn, fc, sleep=lambda s: None)
+    assert conn.execute("select missed_sweeps, state from shops where ref=%s", (ref,)).fetchone() == {"missed_sweeps": 1, "state": "A"}
+    C.sweep_list(conn, fc, sleep=lambda s: None)
+    assert conn.execute("select state from shops where ref=%s", (ref,)).fetchone()["state"] == "GONE"
+    C.sweep_list(conn, FakeClient(pages={("CAT011001", "0"): (PAGE, None)}), sleep=lambda s: None)
+    assert conn.execute("select state, missed_sweeps from shops where ref=%s", (ref,)).fetchone() == {"state": "A", "missed_sweeps": 0}
+
+
+def test_list_sweep_failure_keeps_saved_rows(conn):
+    fc = FakeClient(pages={("CAT011001", "0"): (PAGE[:2], "n"), ("CAT011001", "n"): (PAGE[2:], None)}, fail_after=1)
+    run = C.sweep_list(conn, fc, sleep=lambda s: None)
+    assert conn.execute("select ok, error from runs where id=%s", (run.id,)).fetchone()["ok"] is False
+    assert conn.execute("select count(*) as n from shops").fetchone()["n"] == 2
+
+
+def test_schedules_store_events_skip_always_and_remove_stale(conn):
+    for i, ref in enumerate(("M", "A", "N")):
+        C.upsert_shop(conn, meta(ref), "CAT011001")
+    fc = FakeClient(schedules={"M": MONTHLY, "A": ALWAYS, "N": []})
+    run = C.sweep_schedules(conn, fc, sleep=lambda s: None)
+    assert run.stats["kinds"] == {"MONTHLY_DATE": 1, "ALWAYS": 1, "NONE": 1}
+    ev = conn.execute("select shop_ref, schedule_type, opens_at, target_start from open_events").fetchall()
+    assert len(ev) == 1 and ev[0]["shop_ref"] == "M" and ev[0]["opens_at"] == datetime(2026, 10, 1, 5, tzinfo=timezone.utc)
+    # 일정이 바뀌면 옛 이벤트는 사라진다
+    changed = json.loads(json.dumps(MONTHLY)); changed[0]["schedules"][0]["availableOpenDateTime"] = "2026-11-01T14:00:00+09:00"
+    C.store_schedules(conn, "M", changed)
+    assert [r["opens_at"] for r in conn.execute("select opens_at from open_events").fetchall()] == [datetime(2026, 11, 1, 5, tzinfo=timezone.utc)]
+
+
+def test_due_shops_selection(conn):
+    for ref in ("NEW", "ALW", "PAST", "FUT"):
+        C.upsert_shop(conn, meta(ref), "CAT011001")
+    C.upsert_shop(conn, meta("WAIT", service="WAITING"), "CAT011001")
+    C.store_schedules(conn, "ALW", ALWAYS)
+    past = json.loads(json.dumps(MONTHLY)); past[0]["schedules"][0]["availableOpenDateTime"] = "2020-01-01T00:00:00+09:00"
+    C.store_schedules(conn, "PAST", past)
+    C.store_schedules(conn, "FUT", MONTHLY)
+    assert C.due_shops(conn, datetime(2026, 9, 23, tzinfo=timezone.utc)) == ["NEW", "PAST"]
+    assert sorted(C.due_shops(conn, datetime(2026, 9, 23, tzinfo=timezone.utc) + timedelta(days=31))) == ["ALW", "FUT", "NEW", "PAST"]
+
+
+def test_schedules_failure_keeps_rows_saved_so_far_with_real_timestamps(conn):
+    for ref in ("A1", "A2", "A3"):
+        C.upsert_shop(conn, meta(ref), "CAT011001")
+    run = C.sweep_schedules(conn, FakeClient(schedules={"A1": MONTHLY, "A2": MONTHLY, "A3": MONTHLY}, fail_after=2), sleep=lambda s: None)
+    r = conn.execute("select ok, started_at, finished_at from runs where id=%s", (run.id,)).fetchone()
+    assert r["ok"] is False and r["finished_at"] > r["started_at"]
+    assert conn.execute("select count(*) as n from open_events").fetchone()["n"] == 2
+    checked = [x["schedule_checked_at"] for x in conn.execute("select schedule_checked_at from shops where ref in ('A1','A2') order by ref").fetchall()]
+    assert checked[0] < checked[1]  # 식당마다 다른 시각 = 각자 커밋됨

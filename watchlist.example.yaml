@@ -1,0 +1,6 @@
+# 복사해서 watchlist.yaml로 쓰세요.  ctwatch check watchlist.yaml  →  ctwatch run watchlist.yaml
+targets:
+  - shop: mingles            # 식당 주소의 끝부분: app.catchtable.co.kr/ct/shop/<여기>
+    dates: [2026-12-24, 2026-12-25]   # 앞에 있을수록 우선
+    party: 2
+    # open_at: 2026-10-01 14:00      # check가 "자동 계산할 수 없습니다"라고 할 때만

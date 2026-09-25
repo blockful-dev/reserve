@@ -1,0 +1,58 @@
+{
+ "data": {
+  "shopDetailVO": {
+   "shopRef": "JVndsGqjkUNv0sJekfsCrA",
+   "alias": "mingles",
+   "shopName": "밍글스"
+  },
+  "shopOpenScheduleList": [
+   {
+    "scheduleSeq": 44225,
+    "shopRef": "JVndsGqjkUNv0sJekfsCrA",
+    "scheduleType": "B",
+    "monthlyOpenDate": 1,
+    "availableLimitDay": null,
+    "selectedWeekNum": 0,
+    "selectedDayNum": 1,
+    "availableOpenTime": "1400",
+    "startMonthIndex": 2,
+    "endMonthIndex": 2,
+    "openStartDate": 1,
+    "openEndDate": 100,
+    "ordering": 4,
+    "scheduleDisplayYn": "Y",
+    "openCalendarDisplayYn": "Y",
+    "openCalendarMainDisplayYn": null,
+    "regDate": 1673017412.0,
+    "modDate": 1762145393.0,
+    "specialAvailableOpenDate": null,
+    "specialOpenStartZoneDateTime": null,
+    "specialOpenEndZoneDateTime": null,
+    "shopName": "밍글스",
+    "onlineDeadLineDay": 0,
+    "onlineDeadLineTime": "0",
+    "onlineAvailableLimitDay": 100,
+    "onlineAvailableOpenTime": "00:00",
+    "catchtableUrlPath": "mingles",
+    "foodKind": "한식",
+    "landName": "청담",
+    "thumbUrl": null,
+    "imgUrl": null,
+    "onlineScheduleView": {
+     "openDayViewCate": "매 월 1일",
+     "openDayView": "매 월 1일",
+     "openTimeView": "오후 2:00",
+     "openTimeDetailView": "오후 2:00",
+     "reservationTimeAvailableView": "다다음달 1일~다다음달 말일",
+     "reservationTimeEndView": "당일",
+     "detailTitleView": "10월 1일",
+     "detailReservationStart": "12월 1일",
+     "detailReservationEnd": "31일",
+     "detailReservationTypeA": null,
+     "onlineAvailableOpenTime": null,
+     "excludedScheduleDateViews": []
+    }
+   }
+  ]
+ }
+}

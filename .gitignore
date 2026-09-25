@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+logs/
+.playwright-mcp/
+web/node_modules/
+web/.next/
+web/.env.local
+web/next-env.d.ts
+watchlist.yaml

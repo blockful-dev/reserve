@@ -1,0 +1,1 @@
+[{"reservationType": "DINING", "schedules": [{"scheduleType": "ALWAYS", "availableOpenDateTime": "2026-09-24T00:00:00+09:00", "openStartDate": "2026-11-23", "openEndDate": "2026-11-23", "bookableDaysFromOpen": 60, "excludedRanges": []}]}]

@@ -1,0 +1,2413 @@
+{
+ "resultCode": null,
+ "displayMessage": null,
+ "message": null,
+ "data": {
+  "totalShopCount": 9837,
+  "serviceCounts": {
+   "diningCount": 8236,
+   "waitingCount": 3326,
+   "pickupCount": 86,
+   "notContractedLikeCount": 0
+  },
+  "shopResultSize": 805,
+  "paging": {
+   "hasMore": true,
+   "nextOffset": "27:8236:7597-16:3326:2163-1:86:77"
+  },
+  "shopResults": {
+   "shops": [
+    {
+     "shopMeta": {
+      "shopRef": "gkGp4CafAeYre8hLuKcr6g",
+      "state": "A",
+      "useService": true,
+      "urlPathAlias": "washokuyein",
+      "shopName": "와쇼쿠예인",
+      "images": [
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sgkGp4CafAeYre8hLuKcr6g/m/ff7569ba0498447a86454ad9e0d452c5",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sgkGp4CafAeYre8hLuKcr6g/m/ff7569ba0498447a86454ad9e0d452c5",
+        "imgWidth": 2304,
+        "imgHeight": 3072,
+        "category": "ETC"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/466a245fb9004ad9891d1c09c71b8e33",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/466a245fb9004ad9891d1c09c71b8e33",
+        "imgWidth": 5712,
+        "imgHeight": 4284,
+        "category": "BAR"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sgkGp4CafAeYre8hLuKcr6g/78a4c3d6b271464d80280842d6ffc615",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sgkGp4CafAeYre8hLuKcr6g/78a4c3d6b271464d80280842d6ffc615",
+        "imgWidth": 1124,
+        "imgHeight": 746,
+        "category": "INTERIOR"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/3f2fe3629c744cafbdcf996daf36bcc3",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/3f2fe3629c744cafbdcf996daf36bcc3",
+        "imgWidth": 3024,
+        "imgHeight": 4032,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/aa771454c28b4d458c71e6d95a0ee05c",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/aa771454c28b4d458c71e6d95a0ee05c",
+        "imgWidth": 4672,
+        "imgHeight": 7008,
+        "category": "FOOD"
+       }
+      ],
+      "foodKind": "가이세키오마카세",
+      "landName": "도산공원",
+      "operationStatus": "BEFORE_OPEN",
+      "operationTimes": {
+       "startTime": "12:00",
+       "endTime": "22:00",
+       "breakStartTime": "14:30",
+       "breakEndTime": "18:30"
+      },
+      "prices": {
+       "lunchStatus": "OPEN",
+       "dinnerStatus": "OPEN",
+       "lunchPriceMin": 70000,
+       "lunchPriceMax": 79999,
+       "dinnerPriceMin": 100000,
+       "dinnerPriceMax": 199999,
+       "lunchPriceText": "점심 7.5만원",
+       "dinnerPriceText": "저녁 10-18만원",
+       "lunchAndDinnerPriceText": ""
+      },
+      "reviewCount": 1244,
+      "avgScore": 4.9,
+      "stats": {
+       "totalCount": 1244,
+       "avgTotalScore": 4.9
+      },
+      "keywordAvgScores": [],
+      "shopCoord": {
+       "lat": 37.5248581,
+       "lon": 127.0372168
+      },
+      "userDistance": null,
+      "badges": {
+       "automaticBadgeItems": [],
+       "awardBadgeItems": [
+        {
+         "awardSeq": 562,
+         "awardTitle": "국내 최저가 위스키",
+         "awardGroup": "AD",
+         "awardSubGroup": null,
+         "orderInGroup": 8,
+         "shopBadgeUrl": "https://d2ba33ltwyhxsm.cloudfront.net/common_img/comm_259117204088776.webp",
+         "customCss": "{\"color\": \"#222222\", \"background-color\": \"#FFFFF\"}"
+        },
+        {
+         "awardSeq": 576,
+         "awardTitle": "꽃 주문 서비스 ",
+         "awardGroup": "AD",
+         "awardSubGroup": null,
+         "orderInGroup": 15,
+         "shopBadgeUrl": "https://d2ba33ltwyhxsm.cloudfront.net/common_img/comm_2581915484134670.webp",
+         "customCss": "{\"color\": \"#222222\", \"background-color\": \"#FFF4F8\"}"
+        }
+       ],
+       "tvBadgeItems": []
+      },
+      "isInHouse": false,
+      "reservationClosedMessageUseYn": "N",
+      "useShopPhoneYn": "Y",
+      "shopPhone": "050700919040",
+      "mainService": "DINING",
+      "exhibitionKeys": [
+       "1026_1",
+       "1109_omakase",
+       "1128_apgujung",
+       "_6510",
+       "230925_curationad_iza",
+       "231115_2",
+       "231121_keyword",
+       "2023_limited_more_1",
+       "241121_limited",
+       "241121_keyword",
+       "2024_limited_more_finedining",
+       "2024_limited_more2",
+       "2025_zerodeposit",
+       "250421_family_curation_1",
+       "230109_catchpay",
+       "250617_firstcoupon_004",
+       "250618_firstcoupon_1_4",
+       "250618_firstcoupon_2_4",
+       "250618_firstcoupon_3_4",
+       "250618_firstcoupon_4_4",
+       "250620_TEST",
+       "summer4",
+       "stay_in_shop_famouschef",
+       "250828_catchfesta_5color_2",
+       "whiskymoim_d-3",
+       "250908_discount",
+       "whiskydown_delivery",
+       "d-3",
+       "251001_discount",
+       "reservation_250414",
+       "251209_disneyplus",
+       "251212_secret",
+       "2601openrun_over10",
+       "2603gangnam_rsv",
+       "260317_catchweek_3M_all",
+       "260317_catchweek_3M_3",
+       "rankconfig_lastgate_test",
+       "rankconfig_interview_1",
+       "rankconfig_interview_2",
+       "rankconfig_interview_3",
+       "rankconfig_interview_4",
+       "250211_flower",
+       "event_260831_hidden_01",
+       "260831_hidden_anniversary",
+       "260216_apgujeong_tab",
+       "200622_price_level_over10",
+       "whisky_delivery"
+      ],
+      "deliverableProductTypes": [],
+      "isSupportedOfflineAutoCatchPay": true,
+      "displayTags": [
+       "AUTO_CATCH_PAY",
+       "RESERVATION_PENALTY"
+      ],
+      "popupStore": null,
+      "onlineReservationPersonRange": {
+       "min": 1,
+       "max": 4
+      },
+      "coupon": null,
+      "reviewOverview": {
+       "title": "긴자 미슐랭 출신 셰프의 정통 가이세키 다이닝",
+       "latestUpdateDate": "2026-09-11",
+       "sentences": [
+        "긴자 미슐랭 레스토랑에서 수련한 우예인 셰프가 제철 식재료로 빚어낸 현대적인 가이세키 코스를 선보여요.",
+        "아름다운 구성의 핫슨을 시작으로, 고슬고슬하게 지어낸 솥밥은 꼭 먹어봐야 하는 인기 메뉴로 꼽혀요.",
+        "셰프의 세심한 접객이 돋보이는 곳이에요. 특별한 날에 방문하여 사케 페어링을 곁들여 보는 것을 추천드려요."
+       ]
+      }
+     },
+     "dining": {
+      "multipleDatesSlotInfo": {
+       "dailySlotList": [
+        {
+         "date": "2026-09-23",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-24",
+         "availableStatus": "CLOSED",
+         "availablePersonCounts": [],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-25",
+         "availableStatus": "DAY_OFF",
+         "availablePersonCounts": [],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-26",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-27",
+         "availableStatus": "CLOSED",
+         "availablePersonCounts": [],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-28",
+         "availableStatus": "DAY_OFF",
+         "availablePersonCounts": [],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-29",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-30",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-01",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-02",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-03",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-04",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-05",
+         "availableStatus": "DAY_OFF",
+         "availablePersonCounts": [],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-06",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4
+         ],
+         "benefit": null
+        }
+       ]
+      },
+      "singleDateSlotInfo": null
+     },
+     "waiting": {
+      "singleDateSlotInfo": null
+     },
+     "pickup": {
+      "multipleDatesSlotInfo": null,
+      "singleDateSlotInfo": null
+     },
+     "reservedEntry": {
+      "multipleDatesSlotInfo": null,
+      "singleDateSlotInfo": null
+     },
+     "ad": {
+      "type": "HOTPLACE",
+      "badge": true,
+      "adSection": "SearchList",
+      "traceTag": null
+     },
+     "keywordSearchContext": null
+    },
+    {
+     "shopMeta": {
+      "shopRef": "qBGew4dA-nMcPuQO8jwQvA",
+      "state": "A",
+      "useService": true,
+      "urlPathAlias": "cheongdamyoon",
+      "shopName": "청담윤 일식 오마카세[스시&데판]",
+      "images": [
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/0aec0092d61047d8acf5bba85c12addb",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/0aec0092d61047d8acf5bba85c12addb",
+        "imgWidth": 2933,
+        "imgHeight": 2933,
+        "category": "BAR"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/1e4f1771a78546b0a1da55104cd493de",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/1e4f1771a78546b0a1da55104cd493de",
+        "imgWidth": 1030,
+        "imgHeight": 1288,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/361ef5519ae64572b031f1fb4a5d78c3",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/361ef5519ae64572b031f1fb4a5d78c3",
+        "imgWidth": 1079,
+        "imgHeight": 1045,
+        "category": "ROOM"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/465533c7c2684301af517decb2528080",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/465533c7c2684301af517decb2528080",
+        "imgWidth": 1079,
+        "imgHeight": 1077,
+        "category": "ROOM"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/64ccd16a3d6b4cd895bc7e12b279af02",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/64ccd16a3d6b4cd895bc7e12b279af02",
+        "imgWidth": 1080,
+        "imgHeight": 1077,
+        "category": "ROOM"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/c13be160883e489c98e342b0cb85b9a5",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/c13be160883e489c98e342b0cb85b9a5",
+        "imgWidth": 4000,
+        "imgHeight": 2252,
+        "category": "BAR"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/2b33374b988c4efa93d163b197243b89",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/2b33374b988c4efa93d163b197243b89",
+        "imgWidth": 995,
+        "imgHeight": 710,
+        "category": "EXTERIOR"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/dd92ba44d64547ed92949f0eefabc5b5",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/dd92ba44d64547ed92949f0eefabc5b5",
+        "imgWidth": 983,
+        "imgHeight": 681,
+        "category": "EXTERIOR"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/ffd81dfd1af144f998ce40379f872493",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/ffd81dfd1af144f998ce40379f872493",
+        "imgWidth": 1079,
+        "imgHeight": 714,
+        "category": "ROOM"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/ac6bdb245bab41cc97a2a47133aa9473",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/ac6bdb245bab41cc97a2a47133aa9473",
+        "imgWidth": 1056,
+        "imgHeight": 716,
+        "category": "BAR"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/db8ad80b1e994f02b38c13b5d64fd9a9",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/db8ad80b1e994f02b38c13b5d64fd9a9",
+        "imgWidth": 1079,
+        "imgHeight": 714,
+        "category": "EXTERIOR"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/e608ae1e36d3437faccfff6b5b50ea9d",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/e608ae1e36d3437faccfff6b5b50ea9d",
+        "imgWidth": 1080,
+        "imgHeight": 714,
+        "category": "BAR"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/eb9d27170d78434984c66fe70382a978",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/eb9d27170d78434984c66fe70382a978",
+        "imgWidth": 1080,
+        "imgHeight": 715,
+        "category": "ROOM"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/e2cecec5540448eb93a3f95815063514",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/e2cecec5540448eb93a3f95815063514",
+        "imgWidth": 1078,
+        "imgHeight": 714,
+        "category": "ROOM"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/afd4ba2409804d1e897b0e795a480806",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/afd4ba2409804d1e897b0e795a480806",
+        "imgWidth": 1079,
+        "imgHeight": 742,
+        "category": "ETC"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/f037a37033c749c69f9beb4d654100e1",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/f037a37033c749c69f9beb4d654100e1",
+        "imgWidth": 1019,
+        "imgHeight": 648,
+        "category": "INTERIOR"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/5746ab35cb384eab93143e091f779946",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/5746ab35cb384eab93143e091f779946",
+        "imgWidth": 1080,
+        "imgHeight": 717,
+        "category": "ROOM"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/846fcb4ebb21453c87a7678c9970400e",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/846fcb4ebb21453c87a7678c9970400e",
+        "imgWidth": 1079,
+        "imgHeight": 714,
+        "category": "ETC"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/d60dcae173684afdaef5a68d63f70723",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/d60dcae173684afdaef5a68d63f70723",
+        "imgWidth": 1079,
+        "imgHeight": 714,
+        "category": "INTERIOR"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/0fd58575ed9248c8a58af9a2f10b7ef6",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/0fd58575ed9248c8a58af9a2f10b7ef6",
+        "imgWidth": 1079,
+        "imgHeight": 693,
+        "category": "ETC"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/93295f101b1c461085379e4d73acad09",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/93295f101b1c461085379e4d73acad09",
+        "imgWidth": 1079,
+        "imgHeight": 714,
+        "category": "EXTERIOR"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/be0ec3c2920d420dacbc799a07a87767",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/be0ec3c2920d420dacbc799a07a87767",
+        "imgWidth": 1079,
+        "imgHeight": 714,
+        "category": "EXTERIOR"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/a76f64f33b914c2399fa1f1cc2ec8066",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sqBGew4dA-nMcPuQO8jwQvA/a76f64f33b914c2399fa1f1cc2ec8066",
+        "imgWidth": 1080,
+        "imgHeight": 714,
+        "category": "FOOD"
+       }
+      ],
+      "foodKind": "스시오마카세",
+      "landName": "청담",
+      "operationStatus": "BEFORE_OPEN",
+      "operationTimes": {
+       "startTime": "11:30",
+       "endTime": "22:00",
+       "breakStartTime": "15:30",
+       "breakEndTime": "17:30"
+      },
+      "prices": {
+       "lunchStatus": "OPEN",
+       "dinnerStatus": "OPEN",
+       "lunchPriceMin": 100000,
+       "lunchPriceMax": 149999,
+       "dinnerPriceMin": 150000,
+       "dinnerPriceMax": 249999,
+       "lunchPriceText": "점심 10-15만원",
+       "dinnerPriceText": "저녁 18-25만원",
+       "lunchAndDinnerPriceText": ""
+      },
+      "reviewCount": 1475,
+      "avgScore": 4.7,
+      "stats": {
+       "totalCount": 1475,
+       "avgTotalScore": 4.7
+      },
+      "keywordAvgScores": [],
+      "shopCoord": {
+       "lat": 37.5248049,
+       "lon": 127.0443462
+      },
+      "userDistance": null,
+      "badges": {
+       "automaticBadgeItems": [],
+       "awardBadgeItems": [
+        {
+         "awardSeq": 570,
+         "awardTitle": "자주 찾는 맛집",
+         "awardGroup": "AD",
+         "awardSubGroup": null,
+         "orderInGroup": 3,
+         "shopBadgeUrl": "https://d2ba33ltwyhxsm.cloudfront.net/common_img/comm_2641519364396759.webp",
+         "customCss": "{\"color\": \"#222222\", \"background-color\": \"#FFEFD2\"}"
+        },
+        {
+         "awardSeq": 596,
+         "awardTitle": "9월 근사한 맛집",
+         "awardGroup": "AD",
+         "awardSubGroup": null,
+         "orderInGroup": 3,
+         "shopBadgeUrl": "https://d2ba33ltwyhxsm.cloudfront.net/common_img/comm_269111000143882.webp",
+         "customCss": "{\"color\": \"#222222\", \"background-color\": \"#FFFFF\"}"
+        },
+        {
+         "awardSeq": 576,
+         "awardTitle": "꽃 주문 서비스 ",
+         "awardGroup": "AD",
+         "awardSubGroup": null,
+         "orderInGroup": 15,
+         "shopBadgeUrl": "https://d2ba33ltwyhxsm.cloudfront.net/common_img/comm_2581915484134670.webp",
+         "customCss": "{\"color\": \"#222222\", \"background-color\": \"#FFF4F8\"}"
+        }
+       ],
+       "tvBadgeItems": []
+      },
+      "isInHouse": false,
+      "reservationClosedMessageUseYn": "N",
+      "useShopPhoneYn": "Y",
+      "shopPhone": "050700913592",
+      "mainService": "DINING",
+      "exhibitionKeys": [
+       "230922_newplace",
+       "event_231225_hidden",
+       "0420_wedding",
+       "event_230122_hidden",
+       "wine_sushi",
+       "event_240219_hidden",
+       "event_240318_hidden",
+       "event_240415_hidden",
+       "240401_monthly_4",
+       "event_240513_hidden",
+       "event_240610_hidden",
+       "240612_mockup",
+       "event_240708_hidden",
+       "event_240805_hidden",
+       "test_benefit_3",
+       "test_benefit_3_2",
+       "test_ff",
+       "240902_chuseok_tab1",
+       "240902_chuseok_tab2",
+       "240902_chuseok_tab3",
+       "event_240902_hidden",
+       "240901_monthly_9",
+       "test hot",
+       "event_240930_hidden",
+       "QA_리미티드 레스토랑_1",
+       "event_241125_hidden",
+       "event_241223_hidden",
+       "_781",
+       "2025_zerodeposit",
+       "250101_monthly_01",
+       "event_250120_hidden",
+       "250123_v2",
+       "event_250217_hidden",
+       "white_test",
+       "250220_whiteday_1",
+       "event_250317_hidden",
+       "event_250414_hidden",
+       "seoul/gyeongi",
+       "250421_family_curation_1",
+       "BUSINESS_MEETING",
+       "250501_monthly_05",
+       "event_250512_hidden",
+       "shcnfaud",
+       "250521_corkage_free_2",
+       "event_250609_hidden_1",
+       "mealsofseoul_250609",
+       "250601_monthly_06",
+       "250617_firstcoupon_004",
+       "250618_firstcoupon_1_4",
+       "250618_firstcoupon_2_4",
+       "250618_firstcoupon_3_4",
+       "250618_firstcoupon_4_4",
+       "250701_monthly_07",
+       "mealsofseoul_250609_02",
+       "mealsofseoul_250707_02",
+       "event_250707_hidden_1",
+       "stay_in_shop_event",
+       "event_250804_hidden_1",
+       "mealsofseoul_250804_02",
+       "250729_catchweek_dining_4",
+       "250801_monthly_08",
+       "moim3_lunch",
+       "moim3_family",
+       "250828_catchfesta_5color_2",
+       "event_250901_blacklabel_2",
+       "event_250901_blacklabel_01",
+       "mealsofseoul_250901_2",
+       "250908_discount",
+       "event_250929_hidden_1",
+       "\t event_250929_hidden_3",
+       "250929_catchweek_9M_3",
+       "250929_trend_test",
+       "250930_chuseokopen_1",
+       "250930_chuseokopen_2",
+       "250930_chuseokopen_3",
+       "250930_chuseokopen_4",
+       "mealofseoul_2590929_2",
+       "251001_discount",
+       "251001_trend_corkagefree",
+       "250922_roomtabactive",
+       "promotion_package_0625",
+       "event_251027_hidden_1",
+       "event_251027_hidden_2",
+       "mealofseoul_251027_2",
+       "251027_autumn_recommend",
+       "251110_limitedweek",
+       "2512_recommend",
+       "2025_LIMITED_TEST",
+       "251120_encorelimitedall",
+       "251120_keyword",
+       "mealsofseoul_251124_2",
+       "event_251124_hidden_1",
+       "event_251124_hidden_3",
+       "251123_limited_more_1",
+       "reservation_250414",
+       "lastchance_all",
+       "lastchance_friend",
+       "251212_secret",
+       "hot_selection",
+       "mealsofseoul_251222_2",
+       "event_251222_hidden_1",
+       "event_251222_hidden_2",
+       "event_260119_hidden_2",
+       "mealsofseoul_260119_2",
+       "event_260119_hidden_1",
+       "260126_newyear_16",
+       "260126_newyear_17",
+       "260126_newyear_18",
+       "260129_valentine_all",
+       "260129_valentine_2",
+       "event_260216_hidden_1",
+       "event_260216_hidden_3",
+       "260223_whiteday_all",
+       "260223_whiteday_2",
+       "2603gangnam_rsv",
+       "event_260316_hidden_1",
+       "event_260316_hidden_3",
+       "260317_catchweek_3M_all",
+       "260317_catchweek_3M_2",
+       "event_260413_hidden_01",
+       "260414_familymonth_parents",
+       "260414_familymonth_1",
+       "2602_catchpay_gangnam",
+       "2602_catchpay_all",
+       "260413_hidden_room",
+       "event_260511_hidden_01",
+       "260511_hidden_room",
+       "260512_catchweek_1",
+       "260512_catchweek_foreverlove",
+       "260601_catchweek_1",
+       "260601_catchweek_COOL_TABLE",
+       "250908_promotion_new_8",
+       "event_260608_hidden_01",
+       "260608_hidden_room",
+       "rankconfig_interview_2",
+       "rankconfig_interview_3",
+       "rankconfig_interview_4",
+       "event_260706_hidden_01",
+       "260706_hidden_room",
+       "260216_cheongdam_tab",
+       "260706_catchweek_1",
+       "260706_catchweek_mukcance",
+       "250908_promotion_new_7",
+       "250908_promotion_new_5",
+       "260728_gangnam_premium_double_sushi",
+       "260803_catchweek_1",
+       "260803_catchweek_summer",
+       "250211_flower",
+       "gangnamtop",
+       "gangnamtop1",
+       "gangnamtop_sushi",
+       "event_260803_hidden_01",
+       "260803_hidden_room",
+       "260722_gangnam_premium_teaser",
+       "event_260831_hidden_01",
+       "260831_hidden_room",
+       "260901_catchweek",
+       "260918_chuseok_1",
+       "260918_chuseok_2",
+       "260918_chuseok_3",
+       "260918_chuseok_4",
+       "2022_teamdinner"
+      ],
+      "deliverableProductTypes": [],
+      "isSupportedOfflineAutoCatchPay": true,
+      "displayTags": [
+       "COUPON",
+       "AUTO_CATCH_PAY",
+       "RESERVATION_PENALTY"
+      ],
+      "popupStore": null,
+      "onlineReservationPersonRange": {
+       "min": 1,
+       "max": 20
+      },
+      "coupon": {
+       "couponBooks": [
+        {
+         "benefitName": "콜키지 프리"
+        }
+       ]
+      },
+      "reviewOverview": {
+       "title": "스시와 철판 요리를 동시에 즐기는 하이엔드 다이닝",
+       "latestUpdateDate": "2026-09-11",
+       "sentences": [
+        "정통 일식 오마카세와 철판 요리를 한자리에서 모두 맛볼 수 있는 일식 다이닝이에요.",
+        "신선한 사시미와 스시를 비롯해, 부드러운 한우 스테이크 등 다채로운 요리를 즐길 수 있어요.",
+        "아이 동반이 가능하고 프라이빗한 룸이 마련되어 있어 가족 모임이나 기념일에 방문하기 좋아요."
+       ]
+      }
+     },
+     "dining": {
+      "multipleDatesSlotInfo": {
+       "dailySlotList": [
+        {
+         "date": "2026-09-23",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-24",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-25",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-26",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-27",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-28",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-29",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-30",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-01",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-02",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-03",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-04",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-05",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-06",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        }
+       ]
+      },
+      "singleDateSlotInfo": null
+     },
+     "waiting": {
+      "singleDateSlotInfo": null
+     },
+     "pickup": {
+      "multipleDatesSlotInfo": null,
+      "singleDateSlotInfo": null
+     },
+     "reservedEntry": {
+      "multipleDatesSlotInfo": null,
+      "singleDateSlotInfo": null
+     },
+     "ad": {
+      "type": "HOTPLACE",
+      "badge": false,
+      "adSection": "SearchList",
+      "traceTag": null
+     },
+     "keywordSearchContext": null
+    },
+    {
+     "shopMeta": {
+      "shopRef": "bUdPDSPg-hooDl3G1Ufd7A",
+      "state": "A",
+      "useService": true,
+      "urlPathAlias": "tunaplace",
+      "shopName": "스시센몬",
+      "images": [
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/c5a3983097b6425c9c57da9f5e1b4b6c",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/c5a3983097b6425c9c57da9f5e1b4b6c",
+        "imgWidth": 1448,
+        "imgHeight": 1086,
+        "category": "INTERIOR"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/44d9aca037db4dc980121cbcbae3aae0",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/44d9aca037db4dc980121cbcbae3aae0",
+        "imgWidth": 1108,
+        "imgHeight": 1419,
+        "category": "BAR"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/7b7b2b45f073446ca3a72445eb36c3f3",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/7b7b2b45f073446ca3a72445eb36c3f3",
+        "imgWidth": 1222,
+        "imgHeight": 1287,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/c89701ffe0884f0682d3f6658fa811d6",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/c89701ffe0884f0682d3f6658fa811d6",
+        "imgWidth": 1220,
+        "imgHeight": 1289,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/00b1f95efa8b45a3884e91f4aa15488d",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/00b1f95efa8b45a3884e91f4aa15488d",
+        "imgWidth": 1536,
+        "imgHeight": 1536,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/2b687798bc644482846bb55a2a019f6b",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/2b687798bc644482846bb55a2a019f6b",
+        "imgWidth": 1254,
+        "imgHeight": 1254,
+        "category": "HALL"
+       }
+      ],
+      "foodKind": "스시오마카세",
+      "landName": "선릉",
+      "operationStatus": "BEFORE_OPEN",
+      "operationTimes": {
+       "startTime": "12:00",
+       "endTime": "22:00",
+       "breakStartTime": null,
+       "breakEndTime": null
+      },
+      "prices": {
+       "lunchStatus": "OPEN",
+       "dinnerStatus": "OPEN",
+       "lunchPriceMin": 60000,
+       "lunchPriceMax": 69999,
+       "dinnerPriceMin": 100000,
+       "dinnerPriceMax": 149999,
+       "lunchPriceText": "점심 6만원",
+       "dinnerPriceText": "저녁 13만원",
+       "lunchAndDinnerPriceText": ""
+      },
+      "reviewCount": 1295,
+      "avgScore": 4.8,
+      "stats": {
+       "totalCount": 1295,
+       "avgTotalScore": 4.8
+      },
+      "keywordAvgScores": [],
+      "shopCoord": {
+       "lat": 37.5035985,
+       "lon": 127.0537303
+      },
+      "userDistance": null,
+      "badges": {
+       "automaticBadgeItems": [],
+       "awardBadgeItems": [],
+       "tvBadgeItems": []
+      },
+      "isInHouse": false,
+      "reservationClosedMessageUseYn": "N",
+      "useShopPhoneYn": "Y",
+      "shopPhone": "050712839888",
+      "mainService": "DINING",
+      "exhibitionKeys": [
+       "0317_japchin",
+       "231115_2",
+       "231118_keyword",
+       "2023_limited_more_1",
+       "231113_winedelivery",
+       "231211_spot",
+       "event_230122_hidden",
+       "wine_sushi",
+       "event_240219_hidden",
+       "event_240318_hidden",
+       "event_240415_hidden",
+       "240501_monthly_5",
+       "event_240513_hidden",
+       "240601_monthly_6",
+       "240601_tab5",
+       "event_240610_hidden",
+       "240612_mockup",
+       "240701_monthly_7",
+       "event_240708_hidden",
+       "240801_monthly_8",
+       "event_240902_hidden",
+       "240201_winedelivery_2",
+       "preview_promotion_test",
+       "QA_20241107_keywords",
+       "241114_24limitedkeyword",
+       "2024_limited_more_finedining",
+       "2024_limited_more2",
+       "250123_v2",
+       "white_test",
+       "250220_whiteday_3",
+       "event_250317_hidden",
+       "cherry_4",
+       "event_250414_hidden",
+       "seoul/gyeongi",
+       "\t 250421_family_curation_3",
+       "event_250512_hidden",
+       "shcnfaud",
+       "event_250609_hidden_1",
+       "250601_monthly_06",
+       "catchtoday_250613_01",
+       "summer4",
+       "\t mealsofseoul_250609_03",
+       "mealsofseoul_250707_03",
+       "event_250707_hidden_1",
+       "event_250804_hidden_1",
+       "mealsofseoul_250804_03",
+       "event_250901_blacklabel_3",
+       "event_250901_blacklabel_01",
+       "mealsofseoul_250901_3",
+       "event_250929_hidden_1",
+       "\t event_250929_hidden_4",
+       "mealofseoul_2590929_3",
+       "event_251027_hidden_1",
+       "event_251027_hidden_5",
+       "mealofseoul_251027_3",
+       "251110_limitedweek",
+       "20251111_keyword",
+       "2025_LIMITED_TEST",
+       "mealsofseoul_251124_3",
+       "251123_limited_more_2",
+       "event_251124_hidden_1",
+       "event_251124_hidden_5",
+       "251122_keyword",
+       "lastchance_all",
+       "lastchance_friend",
+       "251212_secret",
+       "event_251222_hidden_1",
+       "event_251222_hidden_2",
+       "mealsofseoul_251222_3",
+       "mealsofseoul_260119_3",
+       "event_260119_hidden_5",
+       "event_260119_hidden_1",
+       "260126_newyear_18",
+       "event_260216_hidden_1",
+       "event_260216_hidden_5",
+       "2603gangnam_rsv",
+       "260302_trend_3_01",
+       "260330_trend_4_01",
+       "260427_trend_5_01",
+       "202605rankconfig_gangnam_omakase",
+       "rankconfig_interview_4",
+       "260728_gangnam_premium_double_sushi",
+       "gangnamtop",
+       "gangnamtop1",
+       "gangnamtop_sushi",
+       "event_260803_hidden_01",
+       "260803_hidden_omakase",
+       "260722_gangnam_premium_teaser",
+       "event_260831_hidden_01",
+       "260831_hidden_omakase",
+       "260216_gangnam",
+       "260918_chuseok_1",
+       "260918_chuseok_2",
+       "260918_chuseok_3",
+       "200622_price_level_over10"
+      ],
+      "deliverableProductTypes": [],
+      "isSupportedOfflineAutoCatchPay": false,
+      "displayTags": [
+       "RESERVATION_PENALTY"
+      ],
+      "popupStore": null,
+      "onlineReservationPersonRange": {
+       "min": 1,
+       "max": 8
+      },
+      "coupon": null,
+      "reviewOverview": {
+       "title": "힐튼호텔 출신 셰프의 감각적인 스시 오마카세",
+       "latestUpdateDate": "2026-09-11",
+       "sentences": [
+        "힐튼호텔 출신 셰프가 운영하는 곳으로, 아늑한 분위기에서 가성비 좋은 스시 오마카세를 선보이고 있어요.",
+        "샤리와 감칠맛이 뛰어난 숙성 네타가 조화롭게 어우러져 코스 내내 만족도 높은 식사를 경험할 수 있어요.",
+        "전문 소믈리에가 추천하는 사케 페어링에 대한 호평이 많으니, 특별한 날 방문하여 함께 곁들여 보세요."
+       ]
+      }
+     },
+     "dining": {
+      "multipleDatesSlotInfo": {
+       "dailySlotList": [
+        {
+         "date": "2026-09-23",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-24",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-25",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-26",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-27",
+         "availableStatus": "DAY_OFF",
+         "availablePersonCounts": [],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-28",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-29",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-30",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-01",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-02",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-03",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-04",
+         "availableStatus": "DAY_OFF",
+         "availablePersonCounts": [],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-05",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-06",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        }
+       ]
+      },
+      "singleDateSlotInfo": null
+     },
+     "waiting": {
+      "singleDateSlotInfo": null
+     },
+     "pickup": {
+      "multipleDatesSlotInfo": null,
+      "singleDateSlotInfo": null
+     },
+     "reservedEntry": {
+      "multipleDatesSlotInfo": null,
+      "singleDateSlotInfo": null
+     },
+     "ad": {
+      "type": "ROAS_BOOST",
+      "badge": false,
+      "adSection": "SearchList",
+      "traceTag": null
+     },
+     "keywordSearchContext": null
+    },
+    {
+     "shopMeta": {
+      "shopRef": "UQF1sXhqB0QMeAp5dTq2mA",
+      "state": "A",
+      "useService": true,
+      "urlPathAlias": "sushijeon",
+      "shopName": "스시전 田鮨",
+      "images": [
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/207cd33a7a5e4f798299988cbff2dd1a",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/207cd33a7a5e4f798299988cbff2dd1a",
+        "imgWidth": 3072,
+        "imgHeight": 1987,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/e0f067a115d448bca9959e1be2f2a712",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/e0f067a115d448bca9959e1be2f2a712",
+        "imgWidth": 3072,
+        "imgHeight": 1987,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/a28bead9f92b43da9ff9afd60b79a059",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/a28bead9f92b43da9ff9afd60b79a059",
+        "imgWidth": 3072,
+        "imgHeight": 1987,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/710195703795406c8011146e3181b53a",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/710195703795406c8011146e3181b53a",
+        "imgWidth": 3072,
+        "imgHeight": 1987,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/7954e624b7d349e0a31b11c1bf6a42a3",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/7954e624b7d349e0a31b11c1bf6a42a3",
+        "imgWidth": 3072,
+        "imgHeight": 1987,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/d997eb2506404a2895b7710bf770a4c4",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/d997eb2506404a2895b7710bf770a4c4",
+        "imgWidth": 3072,
+        "imgHeight": 1987,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/65dba1709cdd42dda1355dcee0ddff3d",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/65dba1709cdd42dda1355dcee0ddff3d",
+        "imgWidth": 3072,
+        "imgHeight": 1987,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/1e4306ea0ddd462bbba3ee7c4cfdee93",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/1e4306ea0ddd462bbba3ee7c4cfdee93",
+        "imgWidth": 3072,
+        "imgHeight": 1987,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/8ad6b138e9b6435e96950dd29477b300",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/8ad6b138e9b6435e96950dd29477b300",
+        "imgWidth": 3072,
+        "imgHeight": 1987,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/009d3fcbdd9d4b4f8550ba0f62bfb3be",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/009d3fcbdd9d4b4f8550ba0f62bfb3be",
+        "imgWidth": 3072,
+        "imgHeight": 1988,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/906abba00b4849f3972efc2a6a5c5fb0",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/906abba00b4849f3972efc2a6a5c5fb0",
+        "imgWidth": 3072,
+        "imgHeight": 1987,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/e67eeeb557a54bcc8ba5afc48c2ac509",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/e67eeeb557a54bcc8ba5afc48c2ac509",
+        "imgWidth": 889,
+        "imgHeight": 639,
+        "category": "ROOM"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/9cbc367970be4c71a9fc504ef9a88039",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/9cbc367970be4c71a9fc504ef9a88039",
+        "imgWidth": 956,
+        "imgHeight": 711,
+        "category": "BAR"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/fe198a03f2b743a0b76cb7d065def596",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/fe198a03f2b743a0b76cb7d065def596",
+        "imgWidth": 960,
+        "imgHeight": 960,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/904d7cb617c6443f863e41fe8ea1f033",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/904d7cb617c6443f863e41fe8ea1f033",
+        "imgWidth": 3072,
+        "imgHeight": 1987,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/412cd096d9614fde988ecb7c5805be1f",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/412cd096d9614fde988ecb7c5805be1f",
+        "imgWidth": 1920,
+        "imgHeight": 1242,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/3670dd6274414c8b8d50b38c50bcdd86",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sUQF1sXhqB0QMeAp5dTq2mA/m/3670dd6274414c8b8d50b38c50bcdd86",
+        "imgWidth": 3072,
+        "imgHeight": 1987,
+        "category": "ETC"
+       }
+      ],
+      "foodKind": "스시오마카세",
+      "landName": "청담",
+      "operationStatus": "BEFORE_OPEN",
+      "operationTimes": {
+       "startTime": "12:00",
+       "endTime": "22:00",
+       "breakStartTime": "15:00",
+       "breakEndTime": "17:30"
+      },
+      "prices": {
+       "lunchStatus": "OPEN",
+       "dinnerStatus": "OPEN",
+       "lunchPriceMin": 90000,
+       "lunchPriceMax": 99999,
+       "dinnerPriceMin": 150000,
+       "dinnerPriceMax": 199999,
+       "lunchPriceText": "점심 9만원",
+       "dinnerPriceText": "저녁 18만원",
+       "lunchAndDinnerPriceText": ""
+      },
+      "reviewCount": 545,
+      "avgScore": 4.6,
+      "stats": {
+       "totalCount": 545,
+       "avgTotalScore": 4.6
+      },
+      "keywordAvgScores": [],
+      "shopCoord": {
+       "lat": 37.5268741,
+       "lon": 127.0457523
+      },
+      "userDistance": null,
+      "badges": {
+       "automaticBadgeItems": [],
+       "awardBadgeItems": [
+        {
+         "awardSeq": 459,
+         "awardTitle": "꽃 주문 서비스 ",
+         "awardGroup": "AD",
+         "awardSubGroup": null,
+         "orderInGroup": 15,
+         "shopBadgeUrl": "https://d2ba33ltwyhxsm.cloudfront.net/common_img/comm_2581915484134670.webp",
+         "customCss": "{\"color\": \"#222222\", \"background-color\": \"#FFF4F8\"}"
+        }
+       ],
+       "tvBadgeItems": []
+      },
+      "isInHouse": false,
+      "reservationClosedMessageUseYn": "N",
+      "useShopPhoneYn": "Y",
+      "shopPhone": "050700917011",
+      "mainService": "DINING",
+      "exhibitionKeys": [
+       "0317_japchin",
+       "0727_onlycatchtable",
+       "1128_apgujung",
+       "230106_check_829",
+       "preview_promotion_test",
+       "QA_20241107_keywords",
+       "241114_24limitedkeyword",
+       "2024_limited_more_finedining",
+       "2024_limited_more2",
+       "2025_zerodeposit",
+       "250301_monthly_03",
+       "event_250317_hidden",
+       "event_250414_hidden",
+       "seoul/gyeongi",
+       "event_250512_hidden",
+       "shcnfaud",
+       "event_250609_hidden_1",
+       "mealsofseoul_250609",
+       "250601_monthly_06",
+       "mealsofseoul_250609_02",
+       "mealsofseoul_250707_02",
+       "event_250707_hidden_1",
+       "250721_livelihoodCoupon",
+       "event_250804_hidden_1",
+       "mealsofseoul_250804_02",
+       "250721_coupon",
+       "moim3_family",
+       "event_250901_blacklabel_3",
+       "event_250901_blacklabel_01",
+       "mealsofseoul_250901_2",
+       "event_250929_hidden_1",
+       "\t event_250929_hidden_4",
+       "250930_chuseokopen_2",
+       "250930_chuseokopen_3",
+       "250930_chuseokopen_4",
+       "mealofseoul_2590929_2",
+       "event_251027_hidden_1",
+       "event_251027_hidden_5",
+       "mealofseoul_251027_2",
+       "251110_limitedweek",
+       "20251111_keyword",
+       "2025_LIMITED_TEST",
+       "251123_limited_more_2",
+       "event_251124_hidden_1",
+       "event_251124_hidden_5",
+       "mealsofseoul_251124_2",
+       "251122_keyword",
+       "lastchance_all",
+       "lastchance_friend",
+       "hot_selection",
+       "event_251222_hidden_5",
+       "mealsofseoul_251222_2",
+       "event_251222_hidden_1",
+       "mealsofseoul_260119_2",
+       "event_260119_hidden_5",
+       "event_260119_hidden_1",
+       "event_260216_hidden_1",
+       "event_260216_hidden_5",
+       "2603gangnam_rsv",
+       "event_260316_hidden_1",
+       "event_260316_hidden_5",
+       "260413_hidden_omakase",
+       "event_260413_hidden_01",
+       "event_260511_hidden_01",
+       "260511_hidden_omakase",
+       "260601_catchweek_1",
+       "260601_catchweek_COOL_TABLE",
+       "event_260608_hidden_01",
+       "260608_hidden_omakase",
+       "rankconfig_interview_1",
+       "rankconfig_interview_4",
+       "event_260706_hidden_01",
+       "260706_hidden_omakase",
+       "260216_cheongdam_tab",
+       "260728_gangnam_premium_double_sushi",
+       "250211_flower",
+       "gangnamtop",
+       "gangnamtop1",
+       "gangnamtop_sushi",
+       "event_260803_hidden_01",
+       "260803_hidden_omakase",
+       "260722_gangnam_premium_teaser",
+       "event_260831_hidden_01",
+       "260831_hidden_omakase",
+       "250908_promotion_new_7",
+       "200622_price_level_over10"
+      ],
+      "deliverableProductTypes": [],
+      "isSupportedOfflineAutoCatchPay": false,
+      "displayTags": [
+       "COUPON",
+       "RESERVATION_PENALTY"
+      ],
+      "popupStore": null,
+      "onlineReservationPersonRange": {
+       "min": 1,
+       "max": 8
+      },
+      "coupon": {
+       "couponBooks": [
+        {
+         "benefitName": "기념·특별한 날을 위한 타마고야끼 포장선물이벤트  쿠폰"
+        }
+       ]
+      },
+      "reviewOverview": {
+       "title": "제철 식재료로 감동을 선사하는 하이엔드 스시야",
+       "latestUpdateDate": "2026-09-11",
+       "sentences": [
+        "청담동에 위치한 곳으로, 고급스러운 분위기 속에서 퀄리티 높은 스시 오마카세를 즐길 수 있어요.",
+        "가성비가 좋다는 런치의 평이 많으며, 고소한 풍미의 아귀간과 전문점 못지않은 디저트가 인기예요.",
+        "셰프님이 스시에 대한 설명을 친절하게 해주어 특별한 날이나 기념일에 방문해 보는 것을 추천드려요."
+       ]
+      }
+     },
+     "dining": {
+      "multipleDatesSlotInfo": {
+       "dailySlotList": [
+        {
+         "date": "2026-09-23",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-24",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": {
+          "type": "E",
+          "value": ""
+         }
+        },
+        {
+         "date": "2026-09-25",
+         "availableStatus": "DAY_OFF",
+         "availablePersonCounts": [],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-26",
+         "availableStatus": "DAY_OFF",
+         "availablePersonCounts": [],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-27",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": {
+          "type": "E",
+          "value": ""
+         }
+        },
+        {
+         "date": "2026-09-28",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-29",
+         "availableStatus": "CLOSED",
+         "availablePersonCounts": [],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-30",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-01",
+         "availableStatus": "DAY_OFF",
+         "availablePersonCounts": [],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-02",
+         "availableStatus": "DAY_OFF",
+         "availablePersonCounts": [],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-03",
+         "availableStatus": "DAY_OFF",
+         "availablePersonCounts": [],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-04",
+         "availableStatus": "DAY_OFF",
+         "availablePersonCounts": [],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-05",
+         "availableStatus": "DAY_OFF",
+         "availablePersonCounts": [],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-06",
+         "availableStatus": "DAY_OFF",
+         "availablePersonCounts": [],
+         "benefit": null
+        }
+       ]
+      },
+      "singleDateSlotInfo": null
+     },
+     "waiting": {
+      "singleDateSlotInfo": null
+     },
+     "pickup": {
+      "multipleDatesSlotInfo": null,
+      "singleDateSlotInfo": null
+     },
+     "reservedEntry": {
+      "multipleDatesSlotInfo": null,
+      "singleDateSlotInfo": null
+     },
+     "ad": {
+      "type": "HOTPLACE",
+      "badge": false,
+      "adSection": "SearchList",
+      "traceTag": null
+     },
+     "keywordSearchContext": null
+    },
+    {
+     "shopMeta": {
+      "shopRef": "KEl7iK4aP8_S70dsWfKNwQ",
+      "state": "A",
+      "useService": true,
+      "urlPathAlias": "yoleezip",
+      "shopName": "요릿집",
+      "images": [
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/f05de33b47cd4b2ea92922db62a48b6f",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/f05de33b47cd4b2ea92922db62a48b6f",
+        "imgWidth": 1021,
+        "imgHeight": 1039,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/d407e124eb464d9ab5ad09e50bd8f064",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/d407e124eb464d9ab5ad09e50bd8f064",
+        "imgWidth": 1080,
+        "imgHeight": 1350,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/4c8396bd9f3d492bbf7f2cb3a37ecebb",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/4c8396bd9f3d492bbf7f2cb3a37ecebb",
+        "imgWidth": 446,
+        "imgHeight": 671,
+        "category": "HALL"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/f5d9a040ed4a427e92ac73817f1bd05d",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/f5d9a040ed4a427e92ac73817f1bd05d",
+        "imgWidth": 6000,
+        "imgHeight": 4000,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/2dc42b57e81b49459141c861294fa451",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/2dc42b57e81b49459141c861294fa451",
+        "imgWidth": 4000,
+        "imgHeight": 6000,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/c47ca28d3f444e52bfd33b41a0b25ab7",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/c47ca28d3f444e52bfd33b41a0b25ab7",
+        "imgWidth": 1024,
+        "imgHeight": 1024,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/1b1a611e947f438ebe6af0ff23c5e9a4",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/1b1a611e947f438ebe6af0ff23c5e9a4",
+        "imgWidth": 574,
+        "imgHeight": 434,
+        "category": "ETC"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/c9ac627ac4b444d285d7938251f149a7",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/c9ac627ac4b444d285d7938251f149a7",
+        "imgWidth": 1536,
+        "imgHeight": 1024,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/bbbb778241ef4b74820e7b380e0374fd",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/bbbb778241ef4b74820e7b380e0374fd",
+        "imgWidth": 1024,
+        "imgHeight": 1024,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/9a35e17e4eae4a70a28615e17fcbcb0f",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/9a35e17e4eae4a70a28615e17fcbcb0f",
+        "imgWidth": 1024,
+        "imgHeight": 1024,
+        "category": "ETC"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sKEl7iK4aP8_S70dsWfKNwQ/2921c57b8174497985809f261dd68ff0",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/catchtable/shopinfo/sKEl7iK4aP8_S70dsWfKNwQ/2921c57b8174497985809f261dd68ff0",
+        "imgWidth": 454,
+        "imgHeight": 255,
+        "category": "FOOD"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/79f2fc15a3c74da68ceb5525062cd5cc",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/79f2fc15a3c74da68ceb5525062cd5cc",
+        "imgWidth": 452,
+        "imgHeight": 668,
+        "category": "HALL"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/1f858102f00147609d1b855a89611462",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/1f858102f00147609d1b855a89611462",
+        "imgWidth": 1802,
+        "imgHeight": 1306,
+        "category": "HALL"
+       },
+       {
+        "thumbUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/94257a7389a9445eb67751609d80435b",
+        "imgUrl": "https://ugc-images.catchtable.co.kr/shop/manager/images/94257a7389a9445eb67751609d80435b",
+        "imgWidth": 972,
+        "imgHeight": 1336,
+        "category": "ROOM"
+       }
+      ],
+      "foodKind": "한식",
+      "landName": "마포",
+      "operationStatus": "BEFORE_OPEN",
+      "operationTimes": {
+       "startTime": "18:00",
+       "endTime": "21:30",
+       "breakStartTime": null,
+       "breakEndTime": null
+      },
+      "prices": {
+       "lunchStatus": "OPEN",
+       "dinnerStatus": "OPEN",
+       "lunchPriceMin": 60000,
+       "lunchPriceMax": 79999,
+       "dinnerPriceMin": 60000,
+       "dinnerPriceMax": 79999,
+       "lunchPriceText": "주말 점심 72,000원",
+       "dinnerPriceText": "저녁 72,000원",
+       "lunchAndDinnerPriceText": ""
+      },
+      "reviewCount": 741,
+      "avgScore": 4.8,
+      "stats": {
+       "totalCount": 741,
+       "avgTotalScore": 4.8
+      },
+      "keywordAvgScores": [],
+      "shopCoord": {
+       "lat": 37.5499468,
+       "lon": 126.9373517
+      },
+      "userDistance": null,
+      "badges": {
+       "automaticBadgeItems": [],
+       "awardBadgeItems": [
+        {
+         "awardSeq": 596,
+         "awardTitle": "9월 근사한 맛집",
+         "awardGroup": "AD",
+         "awardSubGroup": null,
+         "orderInGroup": 3,
+         "shopBadgeUrl": "https://d2ba33ltwyhxsm.cloudfront.net/common_img/comm_269111000143882.webp",
+         "customCss": "{\"color\": \"#222222\", \"background-color\": \"#FFFFF\"}"
+        },
+        {
+         "awardSeq": 562,
+         "awardTitle": "국내 최저가 위스키",
+         "awardGroup": "AD",
+         "awardSubGroup": null,
+         "orderInGroup": 8,
+         "shopBadgeUrl": "https://d2ba33ltwyhxsm.cloudfront.net/common_img/comm_259117204088776.webp",
+         "customCss": "{\"color\": \"#222222\", \"background-color\": \"#FFFFF\"}"
+        },
+        {
+         "awardSeq": 576,
+         "awardTitle": "꽃 주문 서비스 ",
+         "awardGroup": "AD",
+         "awardSubGroup": null,
+         "orderInGroup": 15,
+         "shopBadgeUrl": "https://d2ba33ltwyhxsm.cloudfront.net/common_img/comm_2581915484134670.webp",
+         "customCss": "{\"color\": \"#222222\", \"background-color\": \"#FFF4F8\"}"
+        }
+       ],
+       "tvBadgeItems": []
+      },
+      "isInHouse": false,
+      "reservationClosedMessageUseYn": "N",
+      "useShopPhoneYn": "Y",
+      "shopPhone": "050700916937",
+      "mainService": "DINING",
+      "exhibitionKeys": [
+       "0905_chuseok",
+       "1102_soup",
+       "230609_interior_4663",
+       "event_230918_catchweek",
+       "_8851",
+       "230925_curationad_korean",
+       "231115_2",
+       "231120_keyword",
+       "2023_limited_more_3",
+       "event_231127_hidden",
+       "moet 3",
+       "231213_christmastree",
+       "MOET_3",
+       "event_231225_hidden",
+       "240117_newmenu",
+       "event_230122_hidden",
+       "240201_stella1",
+       "240401_trend_4",
+       "240429_trend_5",
+       "240501_savingtop",
+       "240529_savingtop",
+       "240527_trend_6",
+       "240624_trend_7",
+       "240701_savingtop",
+       "240722_trend_8",
+       "240801_monthly_8",
+       "240819_trend_89",
+       "test 1",
+       "test 2",
+       "240901_monthly_9",
+       "0902_whisky_more",
+       "240910_savingtop",
+       "240911_trend_9",
+       "241001_monthly_10",
+       "1004_whisky_more",
+       "240201_winedelivery_1",
+       "241013_trend_10",
+       "241101_monthly_11",
+       "1031_whisky_more",
+       "241111_trend_11",
+       "test_ji123",
+       "241122_hotkeyword",
+       "2024_limited_more_finedining",
+       "2024_limited_more2",
+       "241201_monthly_12",
+       "test_whisky",
+       "2024_yearend_save3",
+       "2024_yearend_save",
+       "2024_yearend_save_1",
+       "241018_price10dining",
+       "241209_whisky_more",
+       "241209_trend_12",
+       "250101_monthly_01",
+       "2501_whiskymore",
+       "240103_trend_01",
+       "whisky_regiontest",
+       "250114_lunarnewyear_30",
+       "250114_lunarnewyear_28",
+       "250203_trend_02",
+       "2502_whiskymore",
+       "250303_trend_03",
+       "whisky_paring",
+       "2503_whiskymore",
+       "250331_trend_04",
+       "250401_group",
+       "250421_firstcoupon",
+       "250421_family_curation_1",
+       "250421_family_bestkeyword_3",
+       "trend_5_1",
+       "SOCIAL_GATHERING",
+       "10+",
+       "230222_starter",
+       "_781",
+       "250521_corkage_free_1",
+       "250526_trend_6_1",
+       "250521_corkage_free_4",
+       "250521_corkage_free_2",
+       "230109_catchpay",
+       "250601_monthly_06",
+       "2505_whiskymore",
+       "2506_whiskymore",
+       "250617_firstcoupon_003",
+       "250618_firstcoupon_1_3",
+       "250618_firstcoupon_2_3",
+       "250618_firstcoupon_3_3",
+       "250618_firstcoupon_4_3",
+       "summer2",
+       "0611_2",
+       "250701_monthly_07",
+       "2507_whiskymore",
+       "250721_trend_8_01",
+       "241022_whiskypairing",
+       "in advance",
+       "미리 주문 (3일 전)",
+       "250721_livelihoodCoupon",
+       "stay_in_shop_mapofriend",
+       "250721_coupon",
+       "2508_whiskymore",
+       "250828_catchfesta_5color_4",
+       "moim2_first",
+       "2509_whiskymore",
+       "whiskymoim_d-3",
+       "250908_discount",
+       "whiskydown_delivery",
+       "d-3",
+       "250929_catchweek_9M_1",
+       "251001_discount",
+       "promotion_package_0625",
+       "251027_autumn_recommend",
+       "251110_limitedweek",
+       "20251116_keyword",
+       "2512_recommend",
+       "2025_LIMITED_TEST",
+       "251122_keyword",
+       "251123_limited_more_1",
+       "reservation_250414",
+       "251209_disneyplus",
+       "firemenu_r1_3",
+       "251218_culinaryclasswars2_firemenu_r1_3",
+       "event_251222_hidden_1",
+       "event_251222_hidden_4",
+       "event_260119_hidden_4",
+       "event_260119_hidden_1",
+       "260126_newyear_16",
+       "260126_newyear_17",
+       "event_260216_hidden_1",
+       "event_260216_hidden_2",
+       "event_260316_hidden_1",
+       "event_260316_hidden_2",
+       "event_260413_hidden_01",
+       "260413_hidden_anniversary",
+       "260414_familymonth_1",
+       "260414_familymonth_parents",
+       "event_260511_hidden_01",
+       "260511_hidden_anniversary",
+       "event_260608_hidden_01",
+       "260608_hidden_anniversary",
+       "rankconfig_interview_2",
+       "rankconfig_interview_3",
+       "rankconfig_interview_4",
+       "event_260706_hidden_01",
+       "260706_hidden_anniversary",
+       "250211_flower",
+       "event_260803_hidden_01",
+       "260803_hidden_anniversary",
+       "event_260831_hidden_01",
+       "260831_hidden_anniversary",
+       "260216_hapjeong",
+       "260918_chuseok_1",
+       "260918_chuseok_2",
+       "260918_chuseok_3",
+       "260918_chuseok_4",
+       "260901_catchweek",
+       "200622_price_level_5to10",
+       "whisky_delivery",
+       "2022_teamdinner"
+      ],
+      "deliverableProductTypes": [],
+      "isSupportedOfflineAutoCatchPay": true,
+      "displayTags": [
+       "AUTO_CATCH_PAY",
+       "RESERVATION_PENALTY"
+      ],
+      "popupStore": null,
+      "onlineReservationPersonRange": {
+       "min": 2,
+       "max": 12
+      },
+      "coupon": null,
+      "reviewOverview": {
+       "title": "전통주 소믈리에가 선보이는 컨템퍼러리 한식 다이닝",
+       "latestUpdateDate": "2026-09-11",
+       "sentences": [
+        "제철 식재료를 활용해 정갈하게 풀어내는 한식 코스 요리를 만날 수 있는 곳이에요.",
+        "계절마다 새롭게 구성되는 코스와 함께 요리의 풍미를 높여주는 전통주 페어링이 유명해요.",
+        "차분하고 여유로운 분위기 속에서 친절한 설명을 들을 수 있어 기념일에 방문하기 좋아요."
+       ]
+      }
+     },
+     "dining": {
+      "multipleDatesSlotInfo": {
+       "dailySlotList": [
+        {
+         "date": "2026-09-23",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-24",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          2,
+          3,
+          4,
+          5
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-25",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          2
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-26",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-27",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-28",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-29",
+         "availableStatus": "DAY_OFF",
+         "availablePersonCounts": [],
+         "benefit": null
+        },
+        {
+         "date": "2026-09-30",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-01",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-02",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-03",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-04",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-05",
+         "availableStatus": "AVAILABLE",
+         "availablePersonCounts": [
+          2,
+          3,
+          4,
+          5,
+          6
+         ],
+         "benefit": null
+        },
+        {
+         "date": "2026-10-06",
+         "availableStatus": "DAY_OFF",
+         "availablePersonCounts": [],
+         "benefit": null
+        }
+       ]
+      },
+      "singleDateSlotInfo": null
+     },
+     "waiting": {
+      "singleDateSlotInfo": null
+     },
+     "pickup": {
+      "multipleDatesSlotInfo": null,
+      "singleDateSlotInfo": null
+     },
+     "reservedEntry": {
+      "multipleDatesSlotInfo": null,
+      "singleDateSlotInfo": null
+     },
+     "ad": {
+      "type": "HOTPLACE",
+      "badge": false,
+      "adSection": "SearchList",
+      "traceTag": null
+     },
+     "keywordSearchContext": null
+    }
+   ],
+   "mapAdShops": [],
+   "relatedRecommendationShops": [],
+   "notAvailableShopRefs": [
+    "RS9vWYOmXQktuo1qdfcVKQ",
+    "28i79C-xsiZciGgUQRJEqQ",
+    "RS9vWYOmXQktuo1qdfcVKQ",
+    "28i79C-xsiZciGgUQRJEqQ",
+    "KCUgFdqw8EM-OnRthIY_pQ",
+    "x5znKYoSpLq9uGvmpj02aw",
+    "ZWvcPSZQjzFt_pOd00lZTg",
+    "So4GiXowQQSb-FcDDtb5EQ",
+    "5bpYzbpNuWOOGzz-cxiNdg",
+    "zEvxCnQBBhXGcdx_GeR1qw",
+    "zX2CZ7MEUuvgnvqydtyJmg",
+    "kV_vsTyPzzT5NKCGdhraqA",
+    "GrapNP5gmqzy29uz-tXMUQ",
+    "_NcRqXWyoFy65jz7LUPCUg",
+    "ZMP5_hxULQWdntrSnUMCfg",
+    "MHa-c4oVMMwsRXtag1wghQ",
+    "1saRbmifQDu9w26E1nD7gQ",
+    "f1COBJEiR8lO9qOX1-K6Cw"
+   ],
+   "abnormalShops": []
+  },
+  "keywordSearchResult": null,
+  "alternativeResults": null,
+  "requestedFilteringShopRefs": [],
+  "spellCorrection": null,
+  "requestHints": {
+   "currentParams": {
+    "divideType": "DIVIDE_BY_AVAILABILITY",
+    "contractedType": "CONTRACTED_ONLY",
+    "listType": "GENERAL"
+   },
+   "nextParams": {
+    "divideType": "DIVIDE_BY_AVAILABILITY",
+    "contractedType": "CONTRACTED_ONLY",
+    "listType": "GENERAL"
+   }
+  },
+  "debugMap": null
+ }
+}
