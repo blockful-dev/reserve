@@ -152,13 +152,14 @@ def collect_main(args: list[str]) -> None:
 
     what = next((a for a in args if not a.startswith("--")), "auto")
     limit = int(args[args.index("--limit") + 1]) if "--limit" in args else None
+    regions = args[args.index("--regions") + 1].split(",") if "--regions" in args else None
     conn = connect()
     if what == "health":
         from ctwatch.collect import health
         h = health(conn, Client())
         print(f"[{now():%m-%d %H:%M:%S}] health {'OK' if h.ok else 'BLOCKED'} ip={h.stats.get('ip')}", flush=True)
         sys.exit(0 if h.ok else 1)
-    for run in collect(conn, Client(), what, limit):
+    for run in collect(conn, Client(), what, limit, regions=regions):
         state = "OK" if run.ok else ("BLOCKED" if run.kind == "health" else "FAILED")
         print(f"[{now():%m-%d %H:%M:%S}] {run.kind} {state} {json.dumps(run.stats, ensure_ascii=False)}", flush=True)
         if not run.ok:
