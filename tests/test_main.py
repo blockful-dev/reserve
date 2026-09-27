@@ -1,6 +1,9 @@
 from datetime import date
 
+import pytest
+
 import ctwatch.__main__ as m
+import ctwatch.book as booking
 from ctwatch.watchlist import Target
 
 A = Target("a", (date(2026, 10, 20), date(2026, 10, 21)), 2)
@@ -65,3 +68,13 @@ def test_guarded_records_the_crash_even_when_the_fallback_fails_too():
 
     m.guarded(boom, fallback, crashed)()
     assert len(crashed) == 2 and "stdout closed" in crashed[0] and "can't start new thread" in crashed[1]
+
+
+def test_book_cli_passes_explicit_payment_choice(monkeypatch):
+    seen = []
+    monkeypatch.setattr(m.sys, "argv", ["ctwatch", "book", "a", "2026-10-20", "2", "18:00", "홀", "--pay", "자동"])
+    monkeypatch.setattr(booking, "run", lambda url, **kwargs: (seen.append((url, kwargs)) or booking.Result(True, "ready")))
+    with pytest.raises(SystemExit) as stopped:
+        m.main()
+    assert stopped.value.code == 0
+    assert seen[0][1] == {"times": ["18:00"], "table": "홀", "pay": "자동"}

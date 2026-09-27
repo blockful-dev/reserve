@@ -220,17 +220,26 @@ def run_auto(items: list[Item], client: Client) -> None:
 def main() -> None:
     if len(sys.argv) >= 2 and sys.argv[1] == "collect":
         return collect_main(sys.argv[2:])
-    if len(sys.argv) >= 5 and sys.argv[1] == "book":  # ctwatch book <alias> <YYYY-MM-DD> <인원> [HH:MM,HH:MM] [홀|테라스]
+    if len(sys.argv) >= 5 and sys.argv[1] == "book":  # ctwatch book <alias> <YYYY-MM-DD> <인원> [HH:MM,HH:MM] [홀|테라스] [--pay 직접|자동]
         from ctwatch.book import run
         alias, d, party = sys.argv[2], date.fromisoformat(sys.argv[3]), int(sys.argv[4])
-        times = sys.argv[5].split(",") if len(sys.argv) > 5 and sys.argv[5] else None
-        r = run(deeplink(alias, d, party), times=times, table=sys.argv[6] if len(sys.argv) > 6 else None)
+        extra, pay = sys.argv[5:], "직접"
+        if "--pay" in extra:
+            index = extra.index("--pay")
+            if index + 1 >= len(extra) or extra[index + 1] not in ("직접", "자동"):
+                sys.exit("--pay는 직접 또는 자동이어야 합니다.")
+            pay = extra[index + 1]
+            extra = extra[:index] + extra[index + 2:]
+        if len(extra) > 2:
+            sys.exit("ctwatch book <alias> <날짜> <인원> [HH:MM,..] [테이블] [--pay 직접|자동]")
+        times = extra[0].split(",") if extra and extra[0] else None
+        r = run(deeplink(alias, d, party), times=times, table=extra[1] if len(extra) > 1 else None, pay=pay)
         print(f"결과: {'준비 완료' if r.ok else '실패'} [{r.step}] {r.detail}")
         sys.exit(0 if r.ok else 1)
     auto = "--auto" in sys.argv
     argv = [a for a in sys.argv if a != "--auto"]
     if len(argv) != 3 or argv[1] not in ("check", "run"):
-        sys.exit("사용법: ctwatch check|run <watchlist.yaml> [--auto]  |  ctwatch collect [auto|list|schedules|all|health] [--limit N]  |  ctwatch book <alias> <날짜> <인원> [HH:MM,..] [홀]")
+        sys.exit("사용법: ctwatch check|run <watchlist.yaml> [--auto]  |  ctwatch collect [auto|list|schedules|all|health] [--limit N]  |  ctwatch book <alias> <날짜> <인원> [HH:MM,..] [홀] [--pay 직접|자동]")
     client = Client()
     items, unknown, failed = plan(load(argv[2]), client)
     report(items, unknown, failed, client)

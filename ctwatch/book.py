@@ -53,6 +53,67 @@ def _click(loc) -> None:
         loc.click(force=True)
 
 
+def choose_menu_set(box, log) -> bool:
+    """회원 전용 옵션이 섞인 메뉴 세트에서는 일반 예약만 자동으로 고른다."""
+    options = [a for a in box.locator(".reservation-menu-selector a, [role='option']").all() if a.is_visible()]
+    general = next((a for a in options if re.fullmatch(r"일반\s*예약", a.inner_text().strip())), None)
+    chosen = general or (options[0] if len(options) == 1 else None)
+    if chosen is None:
+        return False
+    label = chosen.inner_text().strip()
+    _click(chosen)
+    log(f"메뉴 세트 선택: {label}")
+    return True
+
+
+def choose_payment(box, page: Page, pay: str, log) -> bool:
+    """요청한 결제 방식이 실제로 보이고 선택됐을 때만 다음 단계로 간다."""
+    label = box.locator("label").filter(has_text=re.compile("자동결제" if pay == "자동" else "매장에서 직접 결제")).first
+    if not label.count():
+        return False
+    radio = label.locator("input[type=radio]").first
+    if not radio.count():
+        return False
+    sequence = "el => { for (const t of ['pointerdown','mousedown','pointerup','mouseup','click']) el.dispatchEvent(new MouseEvent(t, {bubbles: true})); }"
+    actions = (
+        lambda: label.evaluate(sequence, timeout=1500),
+        lambda: radio.evaluate(sequence, timeout=1500),
+        lambda: (lambda b: page.mouse.click(b["x"] + b["width"] / 2, b["y"] + b["height"] / 2))(label.bounding_box(timeout=1500)),
+        lambda: (radio.focus(timeout=1500), page.keyboard.press("Space")),
+    )
+    for action in actions:
+        if radio.is_checked():
+            break
+        try:
+            action()
+            page.wait_for_timeout(150)
+        except Exception:
+            pass
+    if not radio.is_checked():
+        return False
+    log(f"결제 방식 선택 확인: {label.inner_text().strip()[:60]}")
+    return True
+
+
+def find_form_action(page: Page, pay: str):
+    """홍보 모달의 자동결제 버튼을 실제 폼의 제출 버튼으로 오인하지 않는다."""
+    def visible_buttons(pattern):
+        return [b for b in page.get_by_role("button", name=pattern).all()
+                if b.is_visible() and not b.locator("xpath=ancestor::*[@role='dialog' or @id='popup']").count()]
+
+    exact = visible_buttons(re.compile(r"^(예약하기|예약 신청)$"))
+    if exact:
+        return exact[-1]
+    payment = visible_buttons(re.compile(r"^결제하기$"))
+    if payment:
+        return payment[-1]
+    if pay == "자동":
+        automatic = visible_buttons(re.compile(r"^자동결제로 예약하기$"))
+        if automatic:
+            return automatic[-1]
+    return None
+
+
 def pick_time(page: Page, times: list[str] | None, log) -> str | None:
     """선호 시간 순서대로 눌러본다. 비어 있으면 열린 것 중 첫 번째."""
     slots = page.get_by_role("button", name=re.compile(r"^오[전후] \d{1,2}:\d{2}$"))
@@ -130,9 +191,14 @@ def book(page: Page, url: str, *, times: list[str] | None = None, table: str | N
         box = dialogs[-1]
         title = box.get_attribute("aria-label") or ""
         trace({"kind": "dialog", **describe_dialog(box)})
-        close = box.get_by_role("button", name="닫기")
-        if not title and close.count():  # 홍보 모달 ("예약금 0원 결제란?", "전액 할인의 주인공은…")
-            _click(close); lg("모달 닫기"); continue
+        close = box.get_by_role("button", name=re.compile(r"^(닫기|다음에.*|오늘 하루 보지 않기|7일간 보지 않기|그만 보기)$"))
+        if not title and close.count():  # 홍보 모달은 수락 대신 닫기/다음에를 고른다
+            _click(close.first); lg("모달 닫기"); continue
+        if "메뉴 세트 선택" in title:
+            if not choose_menu_set(box, lg):
+                trace({"kind": "unknown-menu-set", **describe_dialog(box)})
+                return Result(False, "menu", "일반 예약 메뉴 세트를 확인할 수 없음 — 직접 선택")
+            continue  # 선택 직후 다음 메뉴 드로어가 열린다
         if "메뉴" in title:  # 메뉴 선택: 첫 메뉴를 인원수만큼 담는다 (예약하기 직전에 사람이 바꿀 수 있다)
             plus = box.locator("button.plus, button[aria-label$='수량 추가']").first
             try:
@@ -147,22 +213,10 @@ def book(page: Page, url: str, *, times: list[str] | None = None, table: str | N
                     return Result(False, "dialog", "메뉴 선택: 수량 버튼도 코스 항목도 찾지 못함")
                 _click(card); page.wait_for_timeout(200)
                 lg(f"{title}: 첫 코스 선택")
-        elif "결제 방식" in title:  # 자동결제 vs 매장에서 직접 결제
-            want = box.locator("label").filter(has_text=re.compile("자동결제" if pay == "자동" else "직접 결제")).first
-            radio = want.locator("input[type=radio]").first
-            SEQ = "el => { for (const t of ['pointerdown','mousedown','pointerup','mouseup','click']) el.dispatchEvent(new MouseEvent(t, {bubbles: true})); }"
-            # readonly 라디오라 click()으론 안 바뀐다. 바뀔 때까지 방법을 바꿔가며 시도하고 확인한다
-            for how, act in (("label events", lambda: want.evaluate(SEQ)), ("input events", lambda: radio.evaluate(SEQ)),
-                             ("좌표 클릭", lambda: (lambda b: page.mouse.click(b["x"] + b["width"] / 2, b["y"] + b["height"] / 2))(want.bounding_box())),
-                             ("키보드", lambda: (radio.focus(), page.keyboard.press("Space")))):
-                if want.count() and radio.is_checked():
-                    break
-                try:
-                    act(); page.wait_for_timeout(250)
-                except Exception:
-                    pass
-            lg(f"라디오 상태: {[r.is_checked() for r in box.get_by_role('radio').all()]}")
-            lg(f"{title}: {'자동결제' if pay == '자동' else '매장에서 직접 결제'}")
+        elif "결제 방식" in title:
+            if not choose_payment(box, page, pay, lg):
+                trace({"kind": "payment-unavailable", **describe_dialog(box)})
+                return Result(False, "payment", f"요청한 결제 방식({pay})을 선택할 수 없음 — 직접 확인")
         else:
             radios = box.get_by_role("radio")
             if radios.count():
@@ -194,13 +248,11 @@ def book(page: Page, url: str, *, times: list[str] | None = None, table: str | N
 
     page.wait_for_timeout(500)
     dismiss_popups(page, lg)
-    exact = page.get_by_role("button", name=re.compile(r"^(예약하기|예약 신청)$"))  # 업셀 모달의 '자동결제로 예약하기'보다 본 버튼 우선
-    submit_btn = exact.last if exact.count() else page.get_by_role("button", name=re.compile(r"예약하기|예약 신청|결제하기")).last
-    submit_btn.wait_for(state="visible", timeout=8000)
+    submit_btn = find_form_action(page, pay)
+    if submit_btn is None:
+        trace({"kind": "unknown-form", "url": page.url, **describe_dialog(page.locator("body"))})
+        return Result(False, "form", "요청한 방식의 예약/결제 버튼을 찾지 못함 — 직접 확인")
     trace({"kind": "form", "url": page.url, **describe_dialog(page.locator("body"))})
-    for b in page.get_by_role("dialog").get_by_role("button", name=re.compile(r"^(닫기|다음에.*|7일간 보지 않기)$")).all():  # 홍보 팝업이 폼 위에도 뜬다
-        if b.is_visible():
-            b.click(); lg("폼 위 팝업 닫기"); page.wait_for_timeout(300)
     if "결제하기" in submit_btn.inner_text():  # 예약금 실결제(PG)는 자동화하지 않는다
         return Result(False, "form", f"실결제 필요: '{submit_btn.inner_text().strip()}' — 결제는 직접")
     # 동의 항목은 readonly input이라 라벨 텍스트를 눌러야 바뀐다. '모두 동의합니다.'가 약관 전부를 켜고,
@@ -242,12 +294,12 @@ def open_browser(p):
     return ctx, (ctx.pages[0] if ctx.pages else ctx.new_page())
 
 
-def run(url: str, *, times=None, table=None, submit=False, log=print, hold: int = 600) -> Result:
+def run(url: str, *, times=None, table=None, pay="직접", submit=False, log=print, hold: int = 600) -> Result:
     """단독 실행용. 끝나면 사람이 이어받도록 창을 hold초 동안 열어둔다."""
     with sync_playwright() as p:
         ctx, page = open_browser(p)
         try:
-            r = book(page, url, times=times, table=table, log=log, submit=submit)
+            r = book(page, url, times=times, table=table, pay=pay, log=log, submit=submit)
         except Exception as e:  # 어떤 경우든 사람이 이어받을 수 있게 창은 남긴다
             r = Result(False, "error", repr(e))
         page.screenshot(path=str(PROFILE.parent / "logs" / "book-last.png"), full_page=True)

@@ -44,7 +44,7 @@ scripts/db-restore.sh backups/ctopen-XXXX.sql.gz
 uv run ctwatch check watchlist.yaml            # 오픈 시각 계산만
 uv run ctwatch run   watchlist.yaml            # 감시 → 알림 + 예약 페이지
 uv run ctwatch run   watchlist.yaml --auto     # 감시 → 예약하기 직전까지 자동 (먼저 scripts/login.py)
-uv run ctwatch book  <alias> <YYYY-MM-DD> <인원> [HH:MM,..] [홀]   # 지금 바로 폼까지
+uv run ctwatch book  <alias> <YYYY-MM-DD> <인원> [HH:MM,..] [홀] [--pay 직접|자동]   # 지금 바로 폼까지
 uv run ctwatch collect [auto|list|schedules|all|health] [--limit N]
 (cd web && pnpm dev -p 3210)                   # http://localhost:3210
 ```
@@ -62,5 +62,6 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/kr.ctwatch.collect.plist
 
 - 캐치테이블 API는 Cloudflare 봇 관리 뒤에 있다. **2026-09-23에 1초 간격 9천 건 수집 뒤 집 IP가 차단됐다**(48시간 넘게 유지, IP를 바꿔서 해결). 지금은 요청 간격 2.5~6초 무작위, 집 회선(112.148.*) 하루 200건 상한, 실행 전 `health` 1건으로 차단이면 아무것도 보내지 않는다. 이 값을 올리지 말 것.
 - 자동 클릭은 **예약을 만들지 않는다**. 검증용 예약·취소 반복은 계정 제재 사유.
+- 결제 방식 기본값은 매장 직접 결제다. 식당에 이 선택지가 없으면 해당 화면에서 멈춘다. 자동결제를 원할 때만 watchlist에 `pay: 자동` 또는 `ctwatch book ... --pay 자동`을 명시한다.
 - 시간 버튼을 누르면 서버에 7분 '예약 찜'이 잡힌다. 실전 외에 반복 실행하지 말 것.
 - 예약금 실결제(PG) 식당은 폼에서 멈춘다 — 결제는 손으로.
