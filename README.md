@@ -7,7 +7,14 @@
 
 설계·검증 기록은 `docs/superpowers/specs/`.
 
-## 새 머신 설치
+## 새 머신 설치 (한 방에)
+
+```bash
+git clone https://github.com/blockful-dev/reserve.git && cd reserve && scripts/setup.sh
+```
+`backups/latest.sql.gz`(저장소에 포함된 최신 덤프)로 수집 데이터까지 복원하고, 매일 수집 launchd도 등록한다. 아래는 수동 절차.
+
+## 새 머신 설치 (수동)
 
 필요: macOS, Homebrew, Python 3.11+, [uv](https://docs.astral.sh/uv/), Node 22 + pnpm, PostgreSQL 15+.
 

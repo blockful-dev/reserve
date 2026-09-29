@@ -11,5 +11,6 @@ web/next-env.d.ts
 watchlist.yaml
 .omc/
 profile/
-backups/
+backups/*
+!backups/latest.sql.gz
 .claude/
