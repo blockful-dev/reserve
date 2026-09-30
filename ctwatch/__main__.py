@@ -172,6 +172,24 @@ def collect_main(args: list[str]) -> None:
             sys.exit(1)
 
 
+class PendingAlarms:
+    """자동 모드의 정각 알림. 감시 루프를 막지 않도록 알림(소리·출력)은 별도 스레드가 정각에 내고,
+    브라우저 조작(창 하나뿐이라 스레드 간 공유 불가)은 감시가 끝난 뒤 drain()에서 순서대로 한다."""
+
+    def __init__(self, now, sleep, notify):
+        self.now, self.sleep, self.notify, self.items = now, sleep, notify, []
+
+    def add(self, target: Target, d: date, when: datetime, msg: str) -> None:
+        th = threading.Thread(target=lambda: (sleep_until(when, self.now, self.sleep), self.notify(target, d, msg)), daemon=True)
+        th.start()
+        self.items.append((target, d, msg, th))
+
+    def drain(self, handle) -> None:
+        for target, d, msg, th in self.items:
+            th.join()  # 정각 알림이 나간 뒤에 브라우저 처리
+            handle(target, d, msg)
+
+
 def run_auto(items: list[Item], client: Client) -> None:
     """--auto: 로그인된 Chromium을 T-60s에 미리 띄워두고, 감지되면 그 창에서 예약하기 직전까지 자동으로 간다.
     최종 클릭은 사람이 한다. 단순화를 위해 한 번에 한 (오픈 시각, 식당)만 다룬다 — 자동 클릭은 창 하나를 쓰기 때문."""
@@ -206,12 +224,11 @@ def run_auto(items: list[Item], client: Client) -> None:
             print(f"[{now():%H:%M:%S.%f}] {'✅ 예약하기 직전까지 완료 — 지금 누르세요!' if r.ok else '❌ ' + r.step + ': ' + r.detail}", flush=True)
             alert(t.shop, "지금 예약하기를 누르세요!" if r.ok else f"자동 진행 실패({r.step}) — 직접 하세요", "Glass" if r.ok else "Basso")
 
-        def alarm_auto(t: Target, d: date, when: datetime, msg: str) -> None:
-            sleep_until(when, now, time.sleep)
-            finish_auto(t, d, msg)
+        alarms = PendingAlarms(now, time.sleep, lambda t, d, msg: alert(f"{t.shop} {d:%m/%d}", msg, "Glass"))
 
         print(f"[{now():%m-%d %H:%M:%S}] {target.shop} {open_at:%m-%d %H:%M:%S} 오픈 대기 중 (자동 모드, 예약하기 직전까지)… Ctrl+C로 중단", flush=True)
-        watch(targets, ref, open_at, client, now=now, sleep=time.sleep, finish=finish_auto, prepare=prepare_auto, alarm_at=alarm_auto)
+        watch(targets, ref, open_at, client, now=now, sleep=time.sleep, finish=finish_auto, prepare=prepare_auto, alarm_at=alarms.add)
+        alarms.drain(finish_auto)
         print("창을 10분 동안 열어둡니다. 7분 예약 찜 안에 예약하기를 누르세요.", flush=True)
         time.sleep(600)
         ctx.close()
