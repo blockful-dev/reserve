@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import EventList from "@/components/EventList";
 import Filters from "@/components/Filters";
+import NextOpen from "@/components/NextOpen";
+import Timeline from "@/components/Timeline";
 import { foods, listEvents, stats, type Range, type Sort } from "@/lib/events";
 import { kstDate, kstTime } from "@/lib/time";
 
@@ -9,34 +11,38 @@ export const dynamic = "force-dynamic";
 export default async function Page({ searchParams }: PageProps<"/">) {
   const p = await searchParams;
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) || undefined;
-  const [{ rows, nextCursor }, s, foodList] = await Promise.all([
-    listEvents({ q: one(p.q), range: one(p.range) as Range | undefined, region: one(p.region), food: one(p.food), sort: one(p.sort) as Sort | undefined, minPop: Number(one(p.minPop)) || undefined }),
+  const filters = { q: one(p.q), range: one(p.range) as Range | undefined, region: one(p.region), food: one(p.food), sort: one(p.sort) as Sort | undefined, minPop: Number(one(p.minPop)) || undefined };
+  const [{ rows, nextCursor }, next, todays, s, foodList] = await Promise.all([
+    listEvents(filters),
+    listEvents({ limit: 1 }),
+    listEvents({ range: "today", limit: 100 }),
     stats(),
     foods(),
   ]);
   const now = new Date();
+  const upcoming = next.rows.find((r) => new Date(r.opens_at) > now) ?? todays.rows.find((r) => new Date(r.opens_at) > now);
   const updated = s.updatedAt ? new Date(s.updatedAt) : null;
-  const filterKey = JSON.stringify([p.q, p.range, p.region, p.food, p.sort, p.minPop]);
+  const filterKey = JSON.stringify(filters);
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 pb-16">
-      <header className="py-5">
-        <h1 className="text-xl font-bold">서울 예약 오픈 일정</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          다이닝 {s.dining.toLocaleString()}곳 수집 · 정해진 시각에 여는 곳 {s.openrun.toLocaleString()}곳 · 일정 미확인 {s.unknown.toLocaleString()}곳
-          {updated && <> · 갱신 {kstDate(updated)} {kstTime(updated)}</>}
-          {s.lastOk === false && <span className="ml-1 text-amber-600"> · 마지막 수집 실패, 이전 데이터 표시 중</span>}
+    <main className="mx-auto w-full max-w-5xl px-4 pb-24 md:px-8">
+      <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 py-6">
+        <h1 className="text-lg font-medium">서울 예약 오픈 일정</h1>
+        <p className="text-sm text-muted">
+          정해진 시각에 예약을 여는 서울 식당 {s.openrun.toLocaleString()}곳
+          {updated && <>, {kstDate(updated).slice(5).replace("-", "/")} {kstTime(updated)} 갱신</>}
         </p>
+        {s.lastOk === false && <p className="w-full text-sm text-muted">마지막 수집이 실패해 이전 데이터를 보여주고 있어요.</p>}
         {s.health && !s.health.ok && (
-          <p className="mt-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
-            캐치테이블 API 차단 중 ({kstDate(new Date(s.health.at))} {kstTime(new Date(s.health.at))} 확인) — 예약 페이지가 빈 화면일 수 있습니다. IP를 바꾸면 풀립니다.
+          <p className="w-full border-l-2 border-accent pl-3 text-sm">
+            캐치테이블 연결이 막혀 있어요 ({kstTime(new Date(s.health.at))} 확인). 예약 페이지가 비어 보이면 인터넷 연결(IP)을 바꿔 보세요.
           </p>
         )}
       </header>
+      {upcoming && <NextOpen event={upcoming} now={now.toISOString()} />}
+      <Timeline events={todays.rows} now={now.toISOString()} />
       <Suspense><Filters key={one(p.q) ?? ""} foods={foodList} /></Suspense>
-      <div className="mt-4">
-        <Suspense><EventList key={filterKey} initial={rows} initialCursor={nextCursor} now={now.toISOString()} /></Suspense>
-      </div>
+      <Suspense><EventList key={filterKey} initial={rows} initialCursor={nextCursor} now={now.toISOString()} /></Suspense>
     </main>
   );
 }

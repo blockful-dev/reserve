@@ -1,26 +1,55 @@
 @import "tailwindcss";
 
+/* 종이 위의 시간표. 시각이 주인공이고 나머지는 조용히. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --paper: #f3f4f2;
+  --ink: #101314;
+  --muted: #6b7075;
+  --ghost: #b7bbb5;
+  --line: #d9dcd8;
+  --accent: #1f3fe0;
+  --accent-soft: #e4e8fb;
+}
+:root:not([data-theme="light"]) {
+  @media (prefers-color-scheme: dark) {
+    --paper: #14161a;
+    --ink: #eceeea;
+    --muted: #9a9fa4;
+    --ghost: #5c6166;
+    --line: #2a2e33;
+    --accent: #7d92ff;
+    --accent-soft: #1d2440;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #14161a; --ink: #eceeea; --muted: #9a9fa4; --ghost: #5c6166; --line: #2a2e33; --accent: #7d92ff; --accent-soft: #1d2440;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-ghost: var(--ghost);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --font-sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html { background: var(--paper); }
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  -webkit-font-smoothing: antialiased;
+}
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+::selection { background: var(--accent-soft); }
+
+/* 큰 시각 숫자: 라이트 웨이트, 탭룰러, 살짝 좁은 자간 */
+.clock { font-weight: 300; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; line-height: 0.9; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
 }
