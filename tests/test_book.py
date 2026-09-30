@@ -106,3 +106,41 @@ def test_book_reaches_form_through_menu_set_and_quantity_screen(browser):
         assert "/ct/reservation/form" in page.url
     finally:
         page.close()
+
+
+def _slots_page(page, buttons_html):
+    page.route("**/ct/shop/slots*", lambda route: route.fulfill(body=buttons_html.encode(), content_type="text/html; charset=utf-8"))
+    page.goto("https://app.catchtable.co.kr/ct/shop/slots?personCount=2&date=261003")
+
+
+def test_pick_time_follows_preference_order_and_skips_disabled(browser):
+    from ctwatch.book import pick_time
+    page = browser.new_page()
+    try:
+        _slots_page(page, '<button disabled>오후 6:00</button><button>오후 6:30</button><button>오후 7:00</button>')
+        assert pick_time(page, ["18:00", "19:00", "18:30"], lambda m: None) == "오후 7:00"  # 18:00은 마감 → 다음 선호
+    finally:
+        page.close()
+
+
+def test_pick_time_with_preferences_does_not_fall_back_to_any_open_slot(browser):
+    # 선호 시간을 적었는데 하나도 안 열렸으면 아무 시간이나 잡지 않는다 — 엉뚱한 시간 예약 방지
+    from ctwatch.book import pick_time
+    page = browser.new_page()
+    try:
+        _slots_page(page, '<button>오전 11:30</button><button>오후 12:00</button>')
+        assert pick_time(page, ["18:00"], lambda m: None) is None
+        assert pick_time(page, None, lambda m: None) == "오전 11:30"  # 선호가 없을 때만 첫 번째
+    finally:
+        page.close()
+
+
+def test_pick_time_waits_for_busy_slots_to_load(browser):
+    from ctwatch.book import pick_time
+    page = browser.new_page()
+    try:
+        _slots_page(page, '''<button data-busy="true" disabled>오후 6:00</button>
+          <script>setTimeout(() => { const b = document.querySelector('button'); b.dataset.busy = 'false'; b.disabled = false; }, 600)</script>''')
+        assert pick_time(page, ["18:00"], lambda m: None) == "오후 6:00"
+    finally:
+        page.close()
