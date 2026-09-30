@@ -146,18 +146,41 @@ def report(items: list[Item], unknown, failed, client: Client) -> None:
         print(f"  식당 안내: {hint}\n  watchlist에 open_at: 'YYYY-MM-DD HH:MM' 을 직접 적어주세요.\n")
 
 
+COLLECT_USAGE = "사용법: ctwatch collect [auto|list|schedules|all|health] [--limit N] [--regions CODE,..] [--foods top|CODE,..]"
+
+
+def parse_collect_args(args: list[str]) -> tuple[str, int | None, list[str] | None, list[str] | None]:
+    """(what, limit, regions, foods). 잘못된 인자는 트레이스백 대신 사용법으로 거부한다."""
+    from ctwatch.client import CUISINE_TOP
+
+    what, limit, regions, foods, i = "auto", None, None, None, 0
+    while i < len(args):
+        a = args[i]
+        if a in ("--limit", "--regions", "--foods"):
+            if i + 1 >= len(args):
+                sys.exit(f"{a} 뒤에 값이 없습니다.\n{COLLECT_USAGE}")
+            v = args[i + 1]
+            if a == "--limit":
+                if not v.isdigit():
+                    sys.exit(f"--limit는 정수여야 합니다: {v!r}\n{COLLECT_USAGE}")
+                limit = int(v)
+            elif a == "--regions":
+                regions = v.split(",")
+            else:  # --foods top → 대분류 8개, 아니면 코드 목록
+                foods = list(CUISINE_TOP) if v == "top" else v.split(",")
+            i += 2
+        elif a in ("auto", "list", "schedules", "all", "health"):
+            what, i = a, i + 1
+        else:
+            sys.exit(f"알 수 없는 인자: {a!r}\n{COLLECT_USAGE}")
+    return what, limit, regions, foods
+
+
 def collect_main(args: list[str]) -> None:
     from ctwatch.collect import collect
     from ctwatch.db import connect
 
-    what = next((a for a in args if not a.startswith("--")), "auto")
-    limit = int(args[args.index("--limit") + 1]) if "--limit" in args else None
-    regions = args[args.index("--regions") + 1].split(",") if "--regions" in args else None
-    foods = None
-    if "--foods" in args:  # --foods top → 대분류 8개, 아니면 코드 목록
-        from ctwatch.client import CUISINE_TOP
-        v = args[args.index("--foods") + 1]
-        foods = list(CUISINE_TOP) if v == "top" else v.split(",")
+    what, limit, regions, foods = parse_collect_args(args)
     conn = connect()
     if what == "health":
         from ctwatch.collect import health
@@ -256,7 +279,7 @@ def main() -> None:
     auto = "--auto" in sys.argv
     argv = [a for a in sys.argv if a != "--auto"]
     if len(argv) != 3 or argv[1] not in ("check", "run"):
-        sys.exit("사용법: ctwatch check|run <watchlist.yaml> [--auto]  |  ctwatch collect [auto|list|schedules|all|health] [--limit N]  |  ctwatch book <alias> <날짜> <인원> [HH:MM,..] [홀] [--pay 직접|자동]")
+        sys.exit("사용법: ctwatch check|run <watchlist.yaml> [--auto]  |  ctwatch collect …(collect --help)  |  ctwatch book <alias> <날짜> <인원> [HH:MM,..] [홀] [--pay 직접|자동]")
     client = Client()
     items, unknown, failed = plan(load(argv[2]), client)
     report(items, unknown, failed, client)
