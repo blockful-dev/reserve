@@ -206,3 +206,25 @@ def test_collect_splits_budget_between_list_and_schedules(conn):
     runs = C.collect(conn, Fc(), "all", limit=3, ip=lambda: "1.2.3.4", regions=["CAT011001"], sleep=lambda s: None)
     assert [r.kind for r in runs] == ["health", "list"]  # 예산 3 = 목록 3페이지, 남은 예산 0이면 일정 단계는 요청 없이 건너뜀
     assert calls["list"] == 3 and calls["sched"] == 0 and runs[1].stats["truncated"]
+
+
+def test_health_treats_404_as_reachable_not_blocked(conn):
+    # 지적: 확인용 식당이 사라져 404가 나도 '차단'으로 오판하면 수집이 영구 정지한다. 차단은 403/429/연결 실패만
+    class Gone:
+        def shop(self, alias): raise RuntimeError("HTTP Error 404: ")
+    assert C.health(conn, Gone(), ip=lambda: "1.2.3.4").ok is True
+    class Blocked:
+        def shop(self, alias): raise RuntimeError("HTTP Error 403: ")
+    assert C.health(conn, Blocked(), ip=lambda: "1.2.3.4").ok is False
+    class Down:
+        def shop(self, alias): raise ConnectionError("timed out")
+    assert C.health(conn, Down(), ip=lambda: "1.2.3.4").ok is False
+
+
+def test_health_probes_a_known_shop_from_db_when_available(conn):
+    C.upsert_shop(conn, meta("R1", name="가게1") | {"urlPathAlias": "known_alias"}, "CAT011001")
+    asked = []
+    class Rec:
+        def shop(self, alias): asked.append(alias)
+    C.health(conn, Rec(), ip=lambda: "1.2.3.4")
+    assert asked == ["known_alias"]

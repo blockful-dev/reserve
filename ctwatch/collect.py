@@ -37,11 +37,15 @@ def health(conn: Connection, client: Client, ip=public_ip) -> Run:
     """요청 1건으로 차단 여부 확인. 결과를 runs(kind='health')에 남겨 웹이 표시하고, 차단 중이면 수집을 건너뛴다."""
     run = Run(conn, "health")
     run.stats = {"ip": ip()}
+    # 확인 대상은 DB에 있는 다이닝 식당 하나. 아직 없으면(첫 실행) 밍글스
+    r = conn.execute("select alias from shops where service='DINING' and state is distinct from 'GONE' and alias is not null order by last_seen_at desc limit 1").fetchone()
+    alias = r["alias"] if r else "mingles"
     try:
-        client.shop("mingles")
+        client.shop(alias)
         run.finish(True)
     except Exception as e:
-        run.finish(False, repr(e))
+        # 404는 그 식당이 없어진 것뿐 — API는 살아 있다. 차단은 403/429나 연결 실패
+        run.finish("404" in repr(e), repr(e))
     return run
 LIST_EVERY = timedelta(days=7)
 RECHECK_EVERY = timedelta(days=30)
