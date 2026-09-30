@@ -24,7 +24,7 @@ function Tabs({ label, items, value, onPick }: { label: string; items: [string, 
 
 const select = "bg-transparent py-1 text-sm text-ink underline decoration-line underline-offset-4 hover:decoration-ink focus:outline-none";
 
-export default function Filters({ foods }: { foods: string[] }) {
+export default function Filters({ foods, passed }: { foods: string[]; passed: number }) {
   const router = useRouter();
   const path = usePathname();
   const sp = useSearchParams();
@@ -41,6 +41,12 @@ export default function Filters({ foods }: { foods: string[] }) {
       <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
         <Tabs label="기간" items={RANGES} value={sp.get("range") ?? ""} onPick={(v) => set("range", v)} />
         <Tabs label="정렬" items={SORTS} value={sp.get("sort") ?? ""} onPick={(v) => set("sort", v)} />
+        {passed > 0 && (
+          <button onClick={() => set("past", sp.get("past") === "1" ? "" : "1")} aria-pressed={sp.get("past") === "1"}
+            className="ml-auto text-sm text-muted hover:text-ink">
+            {sp.get("past") === "1" ? "지난 오픈 숨기기" : `오늘 지난 오픈 ${passed}건 보기`}
+          </button>
+        )}
       </div>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         <select value={sp.get("region") ?? ""} onChange={(e) => set("region", e.target.value)} aria-label="지역" className={select}>

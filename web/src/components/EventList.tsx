@@ -91,7 +91,7 @@ export default function EventList({ initial, initialCursor, now: serverNow }: Pr
                     <div className={`text-lg font-medium leading-tight ${past ? "" : "text-ink"}`}>{r.name}</div>
                     <div className="mt-1 text-sm text-muted">{[r.land, r.food, r.region_code && REGIONS[r.region_code]].filter(Boolean).join(", ")}</div>
                     <div className="mt-2 text-sm">{targetLabel(r.target_start, r.target_end)}</div>
-                    {(r.review_count || r.awards?.length > 0) && (
+                    {((r.review_count ?? 0) >= 20 || r.awards?.length > 0) && (
                       <div className="mt-1 text-sm text-muted">
                         {r.avg_score != null && <span className="text-ink">{r.avg_score.toFixed(1)}</span>}
                         {r.review_count != null && <span> 리뷰 {r.review_count.toLocaleString()}</span>}

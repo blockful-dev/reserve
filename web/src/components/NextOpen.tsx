@@ -21,13 +21,13 @@ export default function NextOpen({ event, now: serverNow }: { event: EventRow; n
   const at = new Date(event.opens_at);
   const today = kstDate(now) === kstDate(at);
   return (
-    <section aria-label="다음 오픈" className="grid grid-cols-1 gap-x-10 gap-y-4 border-b border-line pb-10 pt-4 md:grid-cols-[auto_1fr] md:items-end">
+    <section aria-label="다음 오픈" className="grid grid-cols-1 gap-x-12 gap-y-4 border-b border-line pb-10 pt-4 md:grid-cols-[auto_1fr] md:items-end">
       <div>
-        <p className="text-sm text-muted">다음 오픈 {today ? "오늘" : kstDayLabel(at)}</p>
+        <p className="text-sm text-muted">다음 오픈{today ? "" : `, ${kstDayLabel(at)}`}</p>
         <p className="clock mt-2 text-[6rem] text-ink md:text-[9rem]">{kstTime(at)}</p>
         <p className="mt-3 text-lg text-accent" aria-live="polite">{countdown(at.getTime() - now.getTime())}</p>
       </div>
-      <div className="max-w-md md:pb-3">
+      <div className="max-w-md md:pb-1">
         <p className="text-2xl font-medium leading-tight">{event.name}</p>
         <p className="mt-1 text-muted">{[event.land, event.food].filter(Boolean).join(", ")}</p>
         <p className="mt-3 text-ink">{targetLabel(event.target_start, event.target_end)} 예약이 열립니다</p>

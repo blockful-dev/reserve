@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
     food: p.get("food") || undefined,
     sort: (p.get("sort") as Sort) || undefined,
     minPop: Number(p.get("minPop")) || undefined,
+    past: p.get("past") === "1",
     cursor: p.get("cursor") || undefined,
   });
   return Response.json(data);
