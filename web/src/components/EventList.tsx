@@ -62,8 +62,8 @@ export default function EventList({ initial, initialCursor, now: serverNow }: Pr
 
   return (
     <div>
-      {groups.map((g) => (
-        <section key={g.day} className="mb-6">
+      {groups.map((g, i) => (
+        <section key={`${g.day}-${i}`} className="mb-6">{/* 인기순에선 같은 날짜 그룹이 떨어져 반복된다 */}
           <h2 className="sticky top-0 z-10 -mx-4 bg-neutral-50/95 px-4 py-2 text-sm font-semibold text-neutral-600 backdrop-blur dark:bg-neutral-950/95 dark:text-neutral-300">
             {g.day === today ? "오늘 · " : ""}{g.label}
           </h2>
