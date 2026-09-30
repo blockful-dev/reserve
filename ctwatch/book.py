@@ -29,7 +29,7 @@ class Result:
 def time_label(hhmm: str) -> str:
     """'18:30' → 버튼 이름 '오후 6:30'"""
     h, m = map(int, hhmm.split(":"))
-    return f"{'오전' if h < 12 else '오후'} {h if h <= 12 else h - 12}:{m:02d}"
+    return f"{'오전' if h < 12 else '오후'} {h % 12 or 12}:{m:02d}"  # 0시 → 오전 12:00, 12시 → 오후 12:00
 
 
 def dismiss_popups(page: Page, log=lambda m: None) -> None:
