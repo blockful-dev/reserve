@@ -116,17 +116,30 @@ def upsert_shop(conn: Connection, m: dict, region_code: str, days: list[dict] | 
     return row["inserted"]
 
 
-def sweep_list(conn: Connection, client: Client, sleep=time.sleep, regions: list[str] | None = None, foods: list[str] | None = None) -> Run:
-    """서울 하위 지역 10개를 끝 페이지까지. 못 본 식당은 missed_sweeps+1, GONE_AFTER 이상이면 state='GONE'."""
+def sweep_list(conn: Connection, client: Client, sleep=time.sleep, regions: list[str] | None = None, foods: list[str] | None = None,
+               max_pages: int | None = None) -> Run:
+    """서울 목록 훑기: (지역, 음식) 조합마다 끝 페이지까지. foods가 있으면 지역은 서울 전체(CAT011) 하나로 두고 음식으로 쪼갠다.
+
+    max_pages(요청 예산)에 걸리면 멈추고 run.stats["resume"]에 위치를 남긴다. 같은 조합의 다음 훑기가 거기서 이어서 돈다.
+    GONE 판정은 한 체인이 끝까지 돌았을 때만, 체인이 시작된 시각 기준으로 한다 — 부분 훑기로는 '못 봤다'를 알 수 없다.
+    """
+    combos = [("CAT011", f) for f in foods] if foods else [(r, None) for r in (regions or [*SEOUL_REGIONS, "CAT011"])]
+    partial = bool(regions or foods)
+    prev = conn.execute("select stats from runs where kind='list' and ok order by id desc limit 1").fetchone()
+    resume = (prev or {}).get("stats", {}).get("resume") or {}
+    if resume.get("combos") != [list(c) for c in combos]:
+        resume = {}
     run = Run(conn, "list")
-    seen, new, pages = set(), 0, 0
+    chain_started = resume.get("chain_started") or conn.execute("select started_at from runs where id=%s", (run.id,)).fetchone()["started_at"].isoformat()
+    seen, new, pages, truncated = set(), 0, 0, False
+    ci, offset = resume.get("combo", 0), resume.get("offset", "0")
     try:
-        # 하위 지역 10개만으로는 ~1,900곳이 빠진다(하위 코드 미부여 식당). 상위 코드 CAT011을 마지막에 한 번 더 훑어 채운다
-        # (지역, 음식) 조합마다 끝까지. foods가 있으면 지역은 서울 전체(CAT011) 하나로 두고 음식으로 쪼갠다
-        combos = [("CAT011", f) for f in foods] if foods else [(r, None) for r in (regions or [*SEOUL_REGIONS, "CAT011"])]
-        for code, food in combos:
-            offset = "0"
+        while ci < len(combos) and not truncated:
+            code, food = combos[ci]
             while offset is not None:
+                if max_pages is not None and pages >= max_pages:
+                    truncated = True
+                    break
                 entries, offset = client.search_page(code, offset, food)
                 pages += 1
                 for e in entries:
@@ -137,12 +150,16 @@ def sweep_list(conn: Connection, client: Client, sleep=time.sleep, regions: list
                     days = ((e.get("dining") or {}).get("multipleDatesSlotInfo") or {}).get("dailySlotList")
                     new += upsert_shop(conn, m, code, days)
                 sleep(pause())
+            if not truncated:
+                ci, offset = ci + 1, "0"
         gone = 0
-        if not regions and not foods:  # 일부만 훑은 경우엔 '못 봤다'를 판정할 수 없다
-            conn.execute("update shops set missed_sweeps = missed_sweeps + 1 where last_seen_at < (select started_at from runs where id=%s)", (run.id,))
+        if not truncated and not partial:  # 체인 완주: 체인 시작 이후 한 번도 안 보인 식당만 '못 봤다'
+            conn.execute("update shops set missed_sweeps = missed_sweeps + 1 where last_seen_at < %s", (chain_started,))
             gone = conn.execute("update shops set state='GONE' where missed_sweeps >= %s and state is distinct from 'GONE' returning ref", (GONE_AFTER,)).rowcount
         conn.commit()
         run.stats = {"pages": pages, "seen": len(seen), "new": new, "gone": gone, "combos": len(combos)}
+        if truncated:
+            run.stats.update(truncated=True, resume={"combo": ci, "offset": offset, "combos": [list(c) for c in combos], "chain_started": chain_started})
         run.finish(True)
     except Exception as e:
         run.stats = {"pages": pages, "seen": len(seen), "new": new}
@@ -218,18 +235,20 @@ def sweep_schedules(conn: Connection, client: Client, sleep=time.sleep, limit: i
 
 
 def list_due(conn: Connection) -> bool:
-    r = conn.execute("select max(finished_at) as t from runs where kind='list' and ok").fetchone()
-    return r["t"] is None or r["t"] < now() - LIST_EVERY
+    r = conn.execute("select finished_at, stats from runs where kind='list' and ok order by id desc limit 1").fetchone()
+    return r is None or bool(r["stats"].get("truncated")) or r["finished_at"] < now() - LIST_EVERY  # 잘린 훑기는 이어서 돈다
 
 
-def collect(conn: Connection, client: Client, what: str = "auto", limit: int | None = None, ip=public_ip, regions: list[str] | None = None, foods: list[str] | None = None) -> list[Run]:
+def collect(conn: Connection, client: Client, what: str = "auto", limit: int | None = None, ip=public_ip, regions: list[str] | None = None, foods: list[str] | None = None, sleep=time.sleep) -> list[Run]:
     h = health(conn, client, ip)
     runs = [h]
     if not h.ok:
         return runs  # 차단 중: 두드리지 않는다. 다음 예약 실행(하루 뒤)에 다시 확인
-    limit = budget(limit, h.stats.get("ip"))
+    limit = budget(limit, h.stats.get("ip"))  # 이 실행의 총 요청 예산 (목록 페이지 + 일정 조회)
     if what in ("list", "all") or (what == "auto" and list_due(conn)):
-        runs.append(sweep_list(conn, client, regions=regions, foods=foods))
-    if what in ("schedules", "all", "auto"):
-        runs.append(sweep_schedules(conn, client, limit=limit))
+        runs.append(sweep_list(conn, client, sleep, regions=regions, foods=foods, max_pages=limit))
+        if limit is not None:
+            limit = max(0, limit - runs[-1].stats.get("pages", 0))
+    if what in ("schedules", "all", "auto") and limit != 0:
+        runs.append(sweep_schedules(conn, client, sleep, limit=limit))
     return runs

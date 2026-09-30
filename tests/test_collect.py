@@ -173,3 +173,36 @@ def test_schedule_kind_change_updates_popularity(conn):
     C.store_schedules(conn, ref, MONTHLY)
     after = conn.execute("select popularity from shops where ref=%s", (ref,)).fetchone()["popularity"]
     assert float(after) == float(before) + 2.0
+
+
+def test_list_sweep_respects_page_budget_and_resumes_next_time(conn):
+    # 지적: 목록 훑기는 예산을 안 받아 집 IP에서 600건도 그대로 나갔다. 예산에 걸리면 멈추고, 다음 실행이 이어서 돈다
+    C.upsert_shop(conn, meta("OLD"), "CAT011001")  # 이번 체인에서 못 보면 결국 GONE
+    pages = {("CAT011001", "0"): (PAGE[:2], None), ("CAT011002", "0"): (PAGE[2:4], "n"), ("CAT011002", "n"): (PAGE[4:], None)}
+    fc = FakeClient(pages=pages)
+    # 전체 훑기(지역 10 + 상위 1 = 조합 11개). 데이터가 있는 건 앞 두 조합뿐, 나머지는 빈 페이지 1건씩
+    r1 = C.sweep_list(conn, fc, sleep=lambda s: None, max_pages=2)
+    assert r1.ok and r1.stats["truncated"] and r1.stats["pages"] == 2 and r1.stats["resume"] == {"combo": 1, "offset": "n", "combos": r1.stats["resume"]["combos"], "chain_started": r1.stats["resume"]["chain_started"]}
+    assert conn.execute("select state, missed_sweeps from shops where ref='OLD'").fetchone() == {"state": "A", "missed_sweeps": 0}  # 잘린 훑기: GONE 판정 보류
+    assert C.list_due(conn)  # 잘렸으면 바로 이어서 돌아야 한다
+    r2 = C.sweep_list(conn, fc, sleep=lambda s: None, max_pages=20)
+    assert r2.ok and not r2.stats.get("truncated") and r2.stats["pages"] == 1 + 9  # 이어서: 남은 페이지 1 + 빈 조합 9
+    assert conn.execute("select count(*) as n from shops where ref <> 'OLD'").fetchone()["n"] == 5
+    assert conn.execute("select missed_sweeps from shops where ref='OLD'").fetchone()["missed_sweeps"] == 1  # 체인 완주 → 1회 미관측
+    assert not C.list_due(conn)
+    C.sweep_list(conn, fc, sleep=lambda s: None)  # 두 번째 완주 → 두 번 연속 미관측
+    assert conn.execute("select state from shops where ref='OLD'").fetchone()["state"] == "GONE"
+
+
+def test_collect_splits_budget_between_list_and_schedules(conn):
+    C.upsert_shop(conn, meta("X"), "CAT011001")
+    calls = {"list": 0, "sched": 0}
+    class Fc:
+        def shop(self, alias): return None
+        def search_page(self, code, offset="0", food=None):
+            calls["list"] += 1; return ([PAGE[calls["list"] % 5]], "n" if calls["list"] < 50 else None)
+        def open_schedules(self, ref):
+            calls["sched"] += 1; return []
+    runs = C.collect(conn, Fc(), "all", limit=3, ip=lambda: "1.2.3.4", regions=["CAT011001"], sleep=lambda s: None)
+    assert [r.kind for r in runs] == ["health", "list"]  # 예산 3 = 목록 3페이지, 남은 예산 0이면 일정 단계는 요청 없이 건너뜀
+    assert calls["list"] == 3 and calls["sched"] == 0 and runs[1].stats["truncated"]
