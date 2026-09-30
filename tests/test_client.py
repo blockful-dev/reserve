@@ -9,9 +9,10 @@ FX = Path(__file__).parent / "fixtures"
 
 class FakeResponse:
     headers = {"date": "Sun, 20 Sep 2026 03:43:36 GMT"}
+    override = None  # 테스트가 응답 본문을 바꿔치기할 때
 
     def __init__(self, name):
-        self.body = json.loads((FX / name).read_text())
+        self.body = FakeResponse.override or json.loads((FX / name).read_text())
 
     def raise_for_status(self):
         pass
@@ -31,6 +32,11 @@ class FakeSession:
         self.kwargs = kw
         name = self.name if isinstance(self.name, str) else next(v for k, v in self.name.items() if url.endswith(k))
         return FakeResponse(name)
+
+    def post(self, url, json=None, **kw):
+        self.calls.append((url, json))
+        self.kwargs = kw
+        return FakeResponse(self.name)
 
 
 def test_shop_parses_ref_name_and_schedules():
@@ -87,3 +93,36 @@ def test_day_slots_shop_is_not_asked_for_its_calendar_again():
     c.calendar("REF")
     c.calendar("OTHER")
     assert [u.rsplit("/", 1)[1] for u, _ in s.calls] == ["calendar", "day-slots", "day-slots", "calendar", "day-slots"]
+
+
+SEARCH = "https://ct-api.catchtable.co.kr/api/v7/search/list"
+
+
+def test_search_page_sends_the_web_apps_body_with_region_and_food():
+    # 수집기의 뼈대인데 미검증이었다: 지역·음식 코드가 filters에 들어가고 size는 30 고정(서버가 그 외를 400으로 거부)
+    s = FakeSession("search_seoul_page.json")
+    entries, nxt = Client(s).search_page("CAT011001", "27:1:1", "C_4")
+    url, body = s.calls[0]
+    assert url == SEARCH and body["paging"] == {"offset": "27:1:1", "size": 30}
+    assert body["filters"]["displayRegionCodes"] == ["CAT011001"] and body["filters"]["foodKindCodes"] == ["C_4"]
+    assert body["filters"]["contractedType"] == "CONTRACTED_ONLY" and s.kwargs["timeout"] == 10
+    assert len(entries) == 5 and "shopMeta" in entries[0] and nxt == "27:8236:7597-16:3326:2163-1:86:77"
+
+
+def test_search_page_omits_food_filter_when_not_given_and_ends_when_no_more():
+    s = FakeSession("search_seoul_page.json")
+    s_body = json.loads((FX / "search_seoul_page.json").read_text())
+    s_body["data"]["paging"]["hasMore"] = False
+    FakeResponse.override = s_body
+    try:
+        _, nxt = Client(s).search_page("CAT011")
+    finally:
+        FakeResponse.override = None
+    assert "foodKindCodes" not in s.calls[0][1]["filters"] and nxt is None
+
+
+def test_open_schedules_hits_display_endpoint_by_shop_ref():
+    s = FakeSession("open_schedules_monthly.json")
+    r = Client(s).open_schedules("REF123")
+    assert s.calls == [("https://ct-api.catchtable.co.kr/api/display/v2/shops/REF123/open-schedules", {})]
+    assert r[0]["schedules"][0]["scheduleType"] == "MONTHLY_DATE" and s.kwargs == {"timeout": 2}
