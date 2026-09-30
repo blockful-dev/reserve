@@ -25,6 +25,7 @@ class Shop:
 
 
 class Client:
+    _day_slots_only: set[str] = set()  # calendar가 가용성을 안 주는 걸로 판명된 식당. 스레드마다 Client를 새로 만들어도 공유
     """비로그인 공개 GET만 쓴다. 쿠키·로그인·예약 생성 없음.
 
     Cloudflare가 일반 클라이언트를 막아 Chrome TLS 위장을 쓴다 (사용자 승인 범위: 이 GET들에 한함).
@@ -37,7 +38,6 @@ class Client:
             headers={"Accept": "application/json", "Origin": "https://app.catchtable.co.kr", "Referer": "https://app.catchtable.co.kr/"},
         )
         self.last_date_header: str | None = None
-        self._day_slots_only: set[str] = set()  # calendar가 가용성을 안 주는 걸로 판명된 식당
 
     def _get(self, path: str, *, timeout: float, **params) -> dict:
         with self.gate:

@@ -1,4 +1,6 @@
 import json
+
+import pytest
 from datetime import date
 from pathlib import Path
 
@@ -75,6 +77,11 @@ CAL, SLOTS = "https://ct-api.catchtable.co.kr/api/reservation/v2/dining/calendar
 SLOTS_PARAMS = {"shopRef": "REF", "tableSeqs": "", "personCounts": ""}  # 웹앱이 보내는 그대로
 
 
+@pytest.fixture(autouse=True)
+def _fresh_day_slots_verdicts():
+    Client._day_slots_only.clear()  # 클래스 공유 상태라 테스트 간 격리
+
+
 def test_shop_whose_calendar_has_no_availability_is_read_from_day_slots():
     # 실전 준비 중 발견(esquep): calendar가 {"availabilityEnriched": false, "days": []}만 주는 식당이 있다.
     # 웹앱은 이런 식당도 day-slots(14일)로 가용성을 받는다 — 그대로 따른다
@@ -126,3 +133,12 @@ def test_open_schedules_hits_display_endpoint_by_shop_ref():
     r = Client(s).open_schedules("REF123")
     assert s.calls == [("https://ct-api.catchtable.co.kr/api/display/v2/shops/REF123/open-schedules", {})]
     assert r[0]["schedules"][0]["scheduleType"] == "MONTHLY_DATE" and s.kwargs == {"timeout": 2}
+
+
+def test_day_slots_verdict_is_shared_across_client_instances():
+    # 감시기는 스레드마다 Client를 새로 만든다 — 판정을 공유하지 않으면 식당마다 첫 조회가 두 번 나간다
+    s1 = FakeSession({"/calendar": "calendar_unenriched.json", "/day-slots": "dayslots_esquep.json"})
+    Client(s1).calendar("SHARED")
+    s2 = FakeSession({"/calendar": "calendar_unenriched.json", "/day-slots": "dayslots_esquep.json"})
+    Client(s2).calendar("SHARED")
+    assert [u.rsplit("/", 1)[1] for u, _ in s2.calls] == ["day-slots"]
