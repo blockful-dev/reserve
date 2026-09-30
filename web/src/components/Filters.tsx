@@ -40,6 +40,21 @@ export default function Filters({ foods }: { foods: string[] }) {
           <option value="">지역 전체</option>
           {Object.entries(REGIONS).map(([c, n]) => <option key={c} value={c}>{n}</option>)}
         </select>
+        <div className="flex overflow-hidden rounded-lg border border-neutral-300 dark:border-neutral-700" role="group" aria-label="정렬">
+          {([["", "오픈순"], ["popular", "인기순"]] as const).map(([v, label]) => {
+            const active = (sp.get("sort") ?? "") === v;
+            return (
+              <button key={v} onClick={() => set("sort", v)} aria-pressed={active}
+                className={`px-3 py-1.5 ${active ? "bg-neutral-900 text-white dark:bg-white dark:text-black" : "bg-white dark:bg-neutral-900"}`}>{label}</button>
+            );
+          })}
+        </div>
+        <select value={sp.get("minPop") ?? ""} onChange={(e) => set("minPop", e.target.value)} aria-label="인기 기준"
+          className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 dark:border-neutral-700 dark:bg-neutral-900">
+          <option value="">인기 전체</option>
+          <option value="12">인기 12+ (리뷰 수백·고평점)</option>
+          <option value="15">인기 15+ (리뷰 천 개급·수상)</option>
+        </select>
         <select value={sp.get("food") ?? ""} onChange={(e) => set("food", e.target.value)} aria-label="음식 종류"
           className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 dark:border-neutral-700 dark:bg-neutral-900">
           <option value="">음식 전체</option>

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import EventList from "@/components/EventList";
 import Filters from "@/components/Filters";
-import { foods, listEvents, stats, type Range } from "@/lib/events";
+import { foods, listEvents, stats, type Range, type Sort } from "@/lib/events";
 import { kstDate, kstTime } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
@@ -10,13 +10,13 @@ export default async function Page({ searchParams }: PageProps<"/">) {
   const p = await searchParams;
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) || undefined;
   const [{ rows, nextCursor }, s, foodList] = await Promise.all([
-    listEvents({ q: one(p.q), range: one(p.range) as Range | undefined, region: one(p.region), food: one(p.food) }),
+    listEvents({ q: one(p.q), range: one(p.range) as Range | undefined, region: one(p.region), food: one(p.food), sort: one(p.sort) as Sort | undefined, minPop: Number(one(p.minPop)) || undefined }),
     stats(),
     foods(),
   ]);
   const now = new Date();
   const updated = s.updatedAt ? new Date(s.updatedAt) : null;
-  const filterKey = JSON.stringify([p.q, p.range, p.region, p.food]);
+  const filterKey = JSON.stringify([p.q, p.range, p.region, p.food, p.sort, p.minPop]);
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 pb-16">

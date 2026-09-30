@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { listEvents, type Range } from "@/lib/events";
+import { listEvents, type Range, type Sort } from "@/lib/events";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +10,8 @@ export async function GET(req: NextRequest) {
     range: (p.get("range") as Range) || undefined,
     region: p.get("region") || undefined,
     food: p.get("food") || undefined,
+    sort: (p.get("sort") as Sort) || undefined,
+    minPop: Number(p.get("minPop")) || undefined,
     cursor: p.get("cursor") || undefined,
   });
   return Response.json(data);

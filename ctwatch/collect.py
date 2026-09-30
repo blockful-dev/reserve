@@ -67,22 +67,51 @@ class Run:
         self.conn.commit()
 
 
-def upsert_shop(conn: Connection, m: dict, region_code: str) -> bool:
-    """검색 결과 shopMeta 하나를 저장. 처음 보는 식당이면 True."""
+def popularity(review_count, avg_score, awards: list[str], sold_out_days, kind: str | None) -> float | None:
+    """인기 점수. 리뷰 규모×평점이 바탕, 수상 뱃지·14일 만석·정해진 시각 오픈이 가산. 리뷰가 없으면 None."""
+    if not review_count:
+        return None
+    import math
+    score = math.log10(review_count + 1) * float(avg_score or 0)  # 리뷰 1,000개·4.9점 ≈ 14.7
+    score += 2.0 * min(len(awards), 2)
+    score += 3.0 * (sold_out_days or 0) / 14
+    if kind and kind not in ("ALWAYS", "NONE"):
+        score += 2.0
+    return round(score, 2)
+
+
+def popularity_fields(m: dict, sold_out_days: int | None) -> dict:
+    """검색 결과 shopMeta에서 인기 신호를 뽑는다. 광고 뱃지(awardGroup 'AD')는 수상이 아니다."""
+    stats = m.get("stats") or {}
+    awards = [a.get("awardTitle") for a in ((m.get("badges") or {}).get("awardBadgeItems") or []) if a.get("awardGroup") != "AD" and a.get("awardTitle")]
+    return {"review_count": m.get("reviewCount") or stats.get("totalCount"), "avg_score": m.get("avgScore") or stats.get("avgTotalScore"),
+            "awards": awards, "sold_out_days": sold_out_days}
+
+
+def upsert_shop(conn: Connection, m: dict, region_code: str, days: list[dict] | None = None) -> bool:
+    """검색 결과 shopMeta 하나를 저장. 처음 보는 식당이면 True. days = 검색 결과의 14일 가용성(dailySlotList)."""
     coord = m.get("shopCoord") or {}
     images = m.get("images") or []
     image = (images[0].get("thumbUrl") or images[0].get("imgUrl")) if images and isinstance(images[0], dict) else None
+    sold_out = sum(1 for d in days if d.get("availableStatus") == "CLOSED") if days else None
+    pop = popularity_fields(m, sold_out)
     row = conn.execute(
-        """insert into shops (ref, alias, name, land, food, region_code, lat, lon, image_url, service, state)
-           values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """insert into shops (ref, alias, name, land, food, region_code, lat, lon, image_url, service, state,
+                              review_count, avg_score, awards, sold_out_days)
+           values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
            on conflict (ref) do update set alias=excluded.alias, name=excluded.name, land=excluded.land, food=excluded.food,
              lat=excluded.lat, lon=excluded.lon, image_url=excluded.image_url, service=excluded.service,
              state=case when excluded.state is null then shops.state else excluded.state end,
+             review_count=coalesce(excluded.review_count, shops.review_count), avg_score=coalesce(excluded.avg_score, shops.avg_score),
+             awards=excluded.awards, sold_out_days=coalesce(excluded.sold_out_days, shops.sold_out_days),
              last_seen_at=clock_timestamp(), missed_sweeps=0
-           returning (xmax = 0) as inserted""",
+           returning (xmax = 0) as inserted, schedule_kind""",
         (m["shopRef"], m.get("urlPathAlias"), m["shopName"], m.get("landName"), m.get("foodKind"), region_code,
-         coord.get("lat"), coord.get("lon"), image, m.get("mainService"), m.get("state")),
+         coord.get("lat"), coord.get("lon"), image, m.get("mainService"), m.get("state"),
+         pop["review_count"], pop["avg_score"], pop["awards"], pop["sold_out_days"]),
     ).fetchone()
+    conn.execute("update shops set popularity=%s where ref=%s",
+                 (popularity(pop["review_count"], pop["avg_score"], pop["awards"], pop["sold_out_days"], row["schedule_kind"]), m["shopRef"]))
     conn.commit()
     return row["inserted"]
 
@@ -98,13 +127,15 @@ def sweep_list(conn: Connection, client: Client, sleep=time.sleep, regions: list
         for code, food in combos:
             offset = "0"
             while offset is not None:
-                metas, offset = client.search_page(code, offset, food)
+                entries, offset = client.search_page(code, offset, food)
                 pages += 1
-                for m in metas:
+                for e in entries:
+                    m = e["shopMeta"]
                     if m["shopRef"] in seen:
                         continue
                     seen.add(m["shopRef"])
-                    new += upsert_shop(conn, m, code)
+                    days = ((e.get("dining") or {}).get("multipleDatesSlotInfo") or {}).get("dailySlotList")
+                    new += upsert_shop(conn, m, code, days)
                 sleep(pause())
         gone = 0
         if not regions and not foods:  # 일부만 훑은 경우엔 '못 봤다'를 판정할 수 없다
@@ -148,6 +179,8 @@ def store_schedules(conn: Connection, ref: str, schedules: list[dict]) -> str:
     kind, events = classify(schedules)
     with conn.transaction():
         conn.execute("update shops set schedule_kind=%s, schedule_checked_at=clock_timestamp() where ref=%s", (kind, ref))
+        r = conn.execute("select review_count, avg_score, awards, sold_out_days from shops where ref=%s", (ref,)).fetchone()
+        conn.execute("update shops set popularity=%s where ref=%s", (popularity(r["review_count"], r["avg_score"], r["awards"], r["sold_out_days"], kind), ref))
         keep = []
         for s in events:
             row = conn.execute(

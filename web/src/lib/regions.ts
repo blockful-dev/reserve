@@ -17,4 +17,8 @@ export type EventRow = {
   opens_at: string; // ISO
   target_start: string | null;
   target_end: string | null;
+  review_count: number | null;
+  avg_score: number | null;
+  awards: string[];
+  popularity: number | null;
 };

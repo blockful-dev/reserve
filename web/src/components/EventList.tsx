@@ -84,6 +84,14 @@ export default function EventList({ initial, initialCursor, now: serverNow }: Pr
                   <div className="min-w-0 flex-1">
                     <div className="line-clamp-2 font-medium leading-tight">{r.name}</div>
                     <div className="truncate text-sm text-neutral-500">{[r.land, r.food, r.region_code && REGIONS[r.region_code]].filter(Boolean).join(" · ")}</div>
+                    {(r.review_count || r.awards?.length > 0) && (
+                      <div className="truncate text-xs text-neutral-500">
+                        {r.avg_score != null && <span className="font-medium text-neutral-700 dark:text-neutral-300">★ {r.avg_score.toFixed(1)}</span>}
+                        {r.review_count != null && <span> 리뷰 {r.review_count.toLocaleString()}</span>}
+                        {r.awards?.slice(0, 2).map((a) => <span key={a} className="ml-1 rounded bg-amber-100 px-1 text-amber-800 dark:bg-amber-900 dark:text-amber-200">{a}</span>)}
+                        {r.popularity != null && <span className="ml-1 text-neutral-400">인기 {r.popularity.toFixed(0)}</span>}
+                      </div>
+                    )}
                     <div className="text-sm">{targetLabel(r.target_start, r.target_end)}</div>
                   </div>
                   <a href={href} target="_blank" rel="noopener" className="shrink-0 rounded-lg border border-neutral-300 px-2.5 py-2 text-sm hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800">예약<span className="hidden sm:inline"> 페이지</span></a>

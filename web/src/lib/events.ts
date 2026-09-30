@@ -1,20 +1,21 @@
 import { sql } from "./db";
 
 export type Range = "today" | "week" | "month" | "all";
-export type Filters = { q?: string; range?: Range; region?: string; food?: string; cursor?: string; limit?: number };
+export type Sort = "time" | "popular";
+export type Filters = { q?: string; range?: Range; region?: string; food?: string; sort?: Sort; minPop?: number; cursor?: string; limit?: number };
 
 export type { EventRow } from "./regions";
 import type { EventRow } from "./regions";
 
 export const PAGE = 30;
 
-export function encodeCursor(r: EventRow) {
-  return Buffer.from(`${r.opens_at}|${r.id}`).toString("base64url");
+export function encodeCursor(r: EventRow, sort: Sort = "time") {
+  return Buffer.from(sort === "popular" ? `${r.popularity ?? 0}|${r.id}` : `${r.opens_at}|${r.id}`).toString("base64url");
 }
-function decodeCursor(c?: string): { at: string; id: number } | null {
+function decodeCursor(c?: string): { key: string; id: number } | null {
   if (!c) return null;
-  const [at, id] = Buffer.from(c, "base64url").toString().split("|");
-  return at && id ? { at, id: Number(id) } : null;
+  const [key, id] = Buffer.from(c, "base64url").toString().split("|");
+  return key !== undefined && id ? { key, id: Number(id) } : null;
 }
 
 /** 오픈 시각 → id 순 키셋 페이지네이션. 범위 경계는 KST 자정 기준. */
@@ -22,9 +23,11 @@ export async function listEvents(f: Filters): Promise<{ rows: EventRow[]; nextCu
   const limit = Math.min(f.limit ?? PAGE, 100);
   const cur = decodeCursor(f.cursor);
   const range = f.range ?? "all";
+  const sort: Sort = f.sort ?? "time";
   const rows = await sql<EventRow[]>`
     with kst as (select (now() at time zone 'Asia/Seoul')::date as today)
     select e.id::int as id, e.shop_ref, s.alias, s.name, s.land, s.food, s.region_code, s.image_url, e.schedule_type,
+           s.review_count, s.avg_score::float as avg_score, s.awards, s.popularity::float as popularity,
            to_char(e.opens_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as opens_at,
            to_char(e.target_start, 'YYYY-MM-DD') as target_start, to_char(e.target_end, 'YYYY-MM-DD') as target_end
     from open_events e join shops s on s.ref = e.shop_ref, kst
@@ -36,11 +39,13 @@ export async function listEvents(f: Filters): Promise<{ rows: EventRow[]; nextCu
       ${f.q ? sql`and s.name ilike ${"%" + f.q + "%"}` : sql``}
       ${f.region ? sql`and s.region_code = ${f.region}` : sql``}
       ${f.food ? sql`and s.food = ${f.food}` : sql``}
-      ${cur ? sql`and (e.opens_at, e.id) > (${cur.at}::timestamptz, ${cur.id})` : sql``}
-    order by e.opens_at, e.id
+      ${f.minPop ? sql`and s.popularity >= ${f.minPop}` : sql``}
+      ${cur && sort === "time" ? sql`and (e.opens_at, e.id) > (${cur.key}::timestamptz, ${cur.id})` : sql``}
+      ${cur && sort === "popular" ? sql`and (coalesce(s.popularity, 0), e.id) < (${Number(cur.key)}, ${cur.id})` : sql``}
+    ${sort === "popular" ? sql`order by coalesce(s.popularity, 0) desc, e.id desc` : sql`order by e.opens_at, e.id`}
     limit ${limit + 1}`;
   const page = rows.slice(0, limit);
-  return { rows: page, nextCursor: rows.length > limit ? encodeCursor(page[page.length - 1]) : null };
+  return { rows: page, nextCursor: rows.length > limit ? encodeCursor(page[page.length - 1], sort) : null };
 }
 
 export async function stats() {

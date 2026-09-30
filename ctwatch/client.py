@@ -73,7 +73,7 @@ class Client:
         return r.json()
 
     def search_page(self, region_code: str, offset: str = "0", food_code: str | None = None) -> tuple[list[dict], str | None]:
-        """지역 코드(+음식 코드) 하나의 검색 결과 한 페이지 (웹앱이 보내는 본문 그대로). (shopMeta 목록, 다음 offset|None)"""
+        """지역 코드(+음식 코드) 하나의 검색 결과 한 페이지 (웹앱이 보내는 본문 그대로). (항목 목록 — 각 항목에 shopMeta·dining(14일 가용성), 다음 offset|None)"""
         body = {"paging": {"offset": offset, "size": 30}, "listType": "GENERAL", "reservationParams": {}, "notUseSpellCorrection": False,
                 "divideType": "DIVIDE_BY_AVAILABILITY", "sort": {"sortType": "recommended", "sortChunkSize": 5},
                 "userInfo": {"clientGeoPoint": {"lat": 37.5518333, "lon": 126.9887774}},
@@ -81,8 +81,7 @@ class Client:
                             **({"foodKindCodes": [food_code]} if food_code else {})},
                 "recommendationModel": "bmk-cwse", "useRerank": True}
         d = self._post("/api/v7/search/list", body, timeout=LOOKUP_TIMEOUT * 5)["data"]
-        metas = [s["shopMeta"] for s in d["shopResults"]["shops"]]
-        return metas, d["paging"]["nextOffset"] if d["paging"]["hasMore"] else None
+        return d["shopResults"]["shops"], d["paging"]["nextOffset"] if d["paging"]["hasMore"] else None
 
     def open_schedules(self, shop_ref: str) -> list[dict]:
         """다음 오픈 시각이 계산돼 오는 일정 목록 (reservationType별)."""

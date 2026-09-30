@@ -8,7 +8,7 @@ from ctwatch import collect as C
 from ctwatch.db import connect
 
 FX = Path(__file__).parent / "fixtures"
-PAGE = [s["shopMeta"] for s in json.loads((FX / "search_seoul_page.json").read_text())["data"]["shopResults"]["shops"]]
+PAGE = json.loads((FX / "search_seoul_page.json").read_text())["data"]["shopResults"]["shops"]
 MONTHLY = json.loads((FX / "open_schedules_monthly.json").read_text())
 ALWAYS = json.loads((FX / "open_schedules_always.json").read_text())
 
@@ -53,7 +53,7 @@ def test_list_sweep_upserts_real_page_and_marks_gone_after_two_misses(conn):
     fc = FakeClient(pages={("CAT011001", "0"): (PAGE, None)})
     run = C.sweep_list(conn, fc, sleep=lambda s: None)
     assert run.stats["new"] == 5 and conn.execute("select count(*) as n from shops").fetchone()["n"] == 5
-    ref = PAGE[0]["shopRef"]
+    ref = PAGE[0]["shopMeta"]["shopRef"]
     fc.pages = {("CAT011001", "0"): (PAGE[1:], None)}
     C.sweep_list(conn, fc, sleep=lambda s: None)
     assert conn.execute("select missed_sweeps, state from shops where ref=%s", (ref,)).fetchone() == {"missed_sweeps": 1, "state": "A"}
@@ -151,3 +151,25 @@ def test_food_partitioned_sweep_dedups_and_skips_gone_marking(conn):
     run = C.sweep_list(conn, fc, sleep=lambda s: None, foods=["C_1", "C_4"])
     assert run.stats["new"] == 5 and run.stats["combos"] == 2 and run.stats["gone"] == 0
     assert conn.execute("select state, missed_sweeps from shops where ref='OLD'").fetchone() == {"state": "A", "missed_sweeps": 0}
+
+
+def test_popularity_fields_and_score(conn):
+    fc = FakeClient(pages={("CAT011001", "0"): (PAGE, None)})
+    C.sweep_list(conn, fc, sleep=lambda s: None)
+    r = conn.execute("select review_count, avg_score, awards, sold_out_days, popularity from shops where ref=%s", (PAGE[0]["shopMeta"]["shopRef"],)).fetchone()
+    assert r["review_count"] == 1244 and float(r["avg_score"]) == 4.9
+    assert r["awards"] == []  # '국내 최저가 위스키'는 광고(AD) 뱃지라 수상이 아니다
+    assert r["sold_out_days"] is not None and r["popularity"] is not None
+    assert C.popularity(1244, 4.9, [], 0, None) == round(__import__("math").log10(1245) * 4.9, 2)
+    assert C.popularity(0, 4.9, [], 0, None) is None
+    assert C.popularity(100, 4.5, ["미쉐린"], 14, "MONTHLY_DATE") > C.popularity(100, 4.5, [], 0, "ALWAYS")
+
+
+def test_schedule_kind_change_updates_popularity(conn):
+    fc = FakeClient(pages={("CAT011001", "0"): (PAGE[:1], None)})
+    C.sweep_list(conn, fc, sleep=lambda s: None)
+    ref = PAGE[0]["shopMeta"]["shopRef"]
+    before = conn.execute("select popularity from shops where ref=%s", (ref,)).fetchone()["popularity"]
+    C.store_schedules(conn, ref, MONTHLY)
+    after = conn.execute("select popularity from shops where ref=%s", (ref,)).fetchone()["popularity"]
+    assert float(after) == float(before) + 2.0
