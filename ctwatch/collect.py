@@ -50,6 +50,11 @@ def health(conn: Connection, client: Client, ip=public_ip) -> Run:
 LIST_EVERY = timedelta(days=7)
 RECHECK_EVERY = timedelta(days=30)
 GONE_AFTER = 2  # 연속으로 못 본 훑기 횟수
+MAX_STREAK = 5  # 일정 훑기에서 연속 실패 허용 — 넘으면 네트워크가 죽은 것
+
+
+def is_block(e: Exception) -> bool:
+    return any(code in repr(e) for code in ("403", "429"))
 EVENT_TYPES_IGNORED = {"ALWAYS"}  # 매일 열리는 상시 — 이벤트 저장 안 함 (사용자 결정)
 
 
@@ -223,17 +228,30 @@ def sweep_schedules(conn: Connection, client: Client, sleep=time.sleep, limit: i
     run = Run(conn, "schedules")
     refs = due_shops(conn, now())[:limit]
     conn.commit()
-    kinds, done = {}, 0
+    kinds, done, skipped, streak = {}, 0, [], 0
+    run.stats = {"due": len(refs), "done": 0, "kinds": kinds, "errors": 0, "skipped": skipped}
     try:
         for ref in refs:
-            kind = store_schedules(conn, ref, client.open_schedules(ref))
+            try:
+                schedules = client.open_schedules(ref)
+            except Exception as e:
+                if is_block(e):
+                    raise  # 차단: 더 두드리지 않는다
+                skipped.append(ref)  # 네트워크 오류는 그 식당만 건너뛴다 — 미조회로 남아 다음에 다시
+                run.stats["errors"] = len(skipped)
+                streak += 1
+                if streak >= MAX_STREAK:
+                    raise RuntimeError(f"연속 {streak}회 실패, 마지막: {e!r}")
+                sleep(pause())
+                continue
+            streak = 0
+            kind = store_schedules(conn, ref, schedules)
             kinds[kind] = kinds.get(kind, 0) + 1
             done += 1
+            run.stats["done"] = done
             sleep(pause())
-        run.stats = {"due": len(refs), "done": done, "kinds": kinds}
         run.finish(True)
     except Exception as e:
-        run.stats = {"due": len(refs), "done": done, "kinds": kinds}
         run.finish(False, repr(e))
     return run
 

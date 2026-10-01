@@ -47,7 +47,7 @@ def test_shop_parses_ref_name_and_schedules():
     assert (shop.ref, shop.name) == ("JVndsGqjkUNv0sJekfsCrA", "밍글스")
     assert shop.schedules[0]["availableOpenTime"] == "1400"
     assert s.calls == [("https://ct-api.catchtable.co.kr/api/v4/shops/mingles", {})]
-    assert s.kwargs == {"timeout": 2}  # 시작 시 조회는 순차라, 멈춘 식당 하나가 나머지의 감시 시작을 오래 붙잡으면 안 된다
+    assert s.kwargs == {"timeout": (2, 2)}  # 시작 시 조회는 순차라, 멈춘 식당 하나가 나머지의 감시 시작을 오래 붙잡으면 안 된다
 
 
 def test_calendar_maps_date_to_status_and_person_counts():
@@ -56,7 +56,7 @@ def test_calendar_maps_date_to_status_and_person_counts():
     assert cal[date(2026, 9, 20)] == ("AVAILABLE", [1, 2, 3, 4, 5, 6, 7, 8])
     assert len(cal) == 42
     assert s.calls == [("https://ct-api.catchtable.co.kr/api/reservation/v2/dining/calendar", {"shopRef": "REF"})]
-    assert s.kwargs == {"timeout": 1.5}  # 폴링은 멈춘 요청 하나에 오래 묶이면 안 된다
+    assert s.kwargs == {"timeout": (1.5, 1.5)}  # 폴링은 멈춘 요청 하나에 오래 묶이면 안 된다
 
 
 def test_every_request_goes_through_the_gate():
@@ -89,7 +89,7 @@ def test_shop_whose_calendar_has_no_availability_is_read_from_day_slots():
     cal = Client(s).calendar("REF")
     assert cal[date(2026, 9, 22)] == ("AVAILABLE", [2]) and cal[date(2026, 10, 1)] == ("BEFORE_OPEN", [])
     assert len(cal) == 14 and s.calls == [(CAL, {"shopRef": "REF"}), (SLOTS, SLOTS_PARAMS)]
-    assert s.kwargs == {"timeout": 1.5}
+    assert s.kwargs == {"timeout": (1.5, 1.5)}
 
 
 def test_day_slots_shop_is_not_asked_for_its_calendar_again():
@@ -112,7 +112,7 @@ def test_search_page_sends_the_web_apps_body_with_region_and_food():
     url, body = s.calls[0]
     assert url == SEARCH and body["paging"] == {"offset": "27:1:1", "size": 30}
     assert body["filters"]["displayRegionCodes"] == ["CAT011001"] and body["filters"]["foodKindCodes"] == ["C_4"]
-    assert body["filters"]["contractedType"] == "CONTRACTED_ONLY" and s.kwargs["timeout"] == 10
+    assert body["filters"]["contractedType"] == "CONTRACTED_ONLY" and s.kwargs["timeout"] == (2, 10)
     assert len(entries) == 5 and "shopMeta" in entries[0] and nxt == "27:8236:7597-16:3326:2163-1:86:77"
 
 
@@ -132,7 +132,7 @@ def test_open_schedules_hits_display_endpoint_by_shop_ref():
     s = FakeSession("open_schedules_monthly.json")
     r = Client(s).open_schedules("REF123")
     assert s.calls == [("https://ct-api.catchtable.co.kr/api/display/v2/shops/REF123/open-schedules", {})]
-    assert r[0]["schedules"][0]["scheduleType"] == "MONTHLY_DATE" and s.kwargs == {"timeout": 2}
+    assert r[0]["schedules"][0]["scheduleType"] == "MONTHLY_DATE" and s.kwargs == {"timeout": (2, 2)}
 
 
 def test_day_slots_verdict_is_shared_across_client_instances():
@@ -142,3 +142,32 @@ def test_day_slots_verdict_is_shared_across_client_instances():
     s2 = FakeSession({"/calendar": "calendar_unenriched.json", "/day-slots": "dayslots_esquep.json"})
     Client(s2).calendar("SHARED")
     assert [u.rsplit("/", 1)[1] for u, _ in s2.calls] == ["day-slots"]
+
+
+def test_hung_request_is_abandoned_at_the_deadline_and_session_replaced():
+    # 10/1 자동 수집 2회가 DNS 해석에서 7~17분 매달려 죽었다. curl의 timeout은 해석 단계를 못 끊는다 →
+    # 요청을 스레드에서 돌리고 데드라인이 지나면 포기, 그 세션은 버리고 새로 만든다
+    import threading, time
+    made = []
+
+    class Hanging:
+        def __init__(self): made.append(self); self.release = threading.Event()
+        def get(self, url, params=None, **kw):
+            if len(made) == 1:
+                self.release.wait(5)  # 첫 세션은 매달린다
+            return FakeResponse("calendar_available.json")
+
+    c = Client(session_factory=Hanging, deadline=0.3)
+    t0 = time.perf_counter()
+    with pytest.raises(TimeoutError):
+        c.calendar("REF")
+    assert time.perf_counter() - t0 < 2
+    assert c.calendar("REF")  # 두 번째 호출은 새 세션으로 성공
+    assert len(made) == 2
+    made[0].release.set()
+
+
+def test_timeout_is_passed_as_connect_and_total_pair():
+    s = FakeSession("calendar_available.json")
+    Client(s).calendar("REF")
+    assert s.kwargs == {"timeout": (1.5, 1.5)}  # (연결 상한, 전체) — 연결 단계에도 상한을 건다

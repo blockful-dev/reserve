@@ -91,7 +91,8 @@ def test_due_shops_selection(conn):
     C.store_schedules(conn, "ALW", ALWAYS)
     past = json.loads(json.dumps(MONTHLY)); past[0]["schedules"][0]["availableOpenDateTime"] = "2020-01-01T00:00:00+09:00"
     C.store_schedules(conn, "PAST", past)
-    C.store_schedules(conn, "FUT", MONTHLY)
+    fut = json.loads(json.dumps(MONTHLY)); fut[0]["schedules"][0]["availableOpenDateTime"] = "2030-01-01T14:00:00+09:00"  # 픽스처의 10/1은 이미 지났다
+    C.store_schedules(conn, "FUT", fut)
     at = C.now()  # 확인 시각은 실제 시계(clock_timestamp)라 기준도 실제 시계여야 한다
     assert C.due_shops(conn, at) == ["NEW", "PAST"]
     assert sorted(C.due_shops(conn, at + timedelta(days=31))) == ["ALW", "FUT", "NEW", "PAST"]
@@ -228,3 +229,29 @@ def test_health_probes_a_known_shop_from_db_when_available(conn):
         def shop(self, alias): asked.append(alias)
     C.health(conn, Rec(), ip=lambda: "1.2.3.4")
     assert asked == ["known_alias"]
+
+
+def test_schedule_sweep_skips_a_timed_out_shop_and_continues(conn):
+    # 10/1: 요청 하나가 매달려 run 전체가 FAILED, 예산 200 중 18건만 처리됐다. 네트워크 오류는 그 식당만 건너뛴다
+    for ref in ("A", "B", "C"):
+        C.upsert_shop(conn, meta(ref), "CAT011001")
+    class Flaky:
+        def open_schedules(self, ref):
+            if ref == "B": raise TimeoutError("Resolving timed out")
+            return MONTHLY
+    run = C.sweep_schedules(conn, Flaky(), sleep=lambda s: None)
+    assert run.ok and run.stats["done"] == 2 and run.stats["errors"] == 1 and run.stats["skipped"] == ["B"]
+    assert conn.execute("select schedule_checked_at is null as pending from shops where ref='B'").fetchone()["pending"]  # 다음에 다시
+
+
+def test_schedule_sweep_still_stops_on_block_or_many_errors(conn):
+    for ref in ("A", "B", "C", "D", "E", "F", "G"):
+        C.upsert_shop(conn, meta(ref), "CAT011001")
+    class Blocked:
+        def open_schedules(self, ref): raise RuntimeError("HTTP Error 403: ")
+    run = C.sweep_schedules(conn, Blocked(), sleep=lambda s: None)
+    assert run.ok is False and run.stats["done"] == 0
+    class Dead:
+        def open_schedules(self, ref): raise TimeoutError("down")
+    run = C.sweep_schedules(conn, Dead(), sleep=lambda s: None)
+    assert run.ok is False and run.stats["errors"] == 5  # 연속 5회면 네트워크가 죽은 것 — 더 두드리지 않는다
