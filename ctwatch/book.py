@@ -29,7 +29,7 @@ class Result:
 def time_label(hhmm: str) -> str:
     """'18:30' → 버튼 이름 '오후 6:30'"""
     h, m = map(int, hhmm.split(":"))
-    return f"{'오전' if h < 12 else '오후'} {h if h <= 12 else h - 12}:{m:02d}"
+    return f"{'오전' if h < 12 else '오후'} {h % 12 or 12}:{m:02d}"  # 0시 → 오전 12:00, 12시 → 오후 12:00
 
 
 def dismiss_popups(page: Page, log=lambda m: None) -> None:
@@ -288,7 +288,15 @@ def book(page: Page, url: str, *, times: list[str] | None = None, table: str | N
     return Result(done, "done", page.url)
 
 
+def trim_profile_cache() -> None:
+    """프로필의 브라우저 캐시(수십~수백 MB)를 비운다. 로그인 쿠키·세션은 Default/Cookies 등에 따로 있어 영향 없다."""
+    import shutil
+    for d in ("Cache", "Code Cache", "GPUCache", "DawnWebGPUCache", "DawnGraphiteCache"):
+        shutil.rmtree(PROFILE / "Default" / d, ignore_errors=True)
+
+
 def open_browser(p):
+    trim_profile_cache()
     ctx = p.chromium.launch_persistent_context(str(PROFILE), headless=False, channel="chromium",
                                               viewport={"width": 480, "height": 900}, locale="ko-KR", timezone_id="Asia/Seoul")
     return ctx, (ctx.pages[0] if ctx.pages else ctx.new_page())

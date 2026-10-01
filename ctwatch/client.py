@@ -4,6 +4,8 @@ from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import date
 
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+
 from curl_cffi import requests
 
 API = "https://ct-api.catchtable.co.kr"
@@ -25,23 +27,38 @@ class Shop:
 
 
 class Client:
+    _day_slots_only: set[str] = set()  # calendar가 가용성을 안 주는 걸로 판명된 식당. 스레드마다 Client를 새로 만들어도 공유
     """비로그인 공개 GET만 쓴다. 쿠키·로그인·예약 생성 없음.
 
     Cloudflare가 일반 클라이언트를 막아 Chrome TLS 위장을 쓴다 (사용자 승인 범위: 이 GET들에 한함).
     """
 
-    def __init__(self, session=None, gate=None):
+    def __init__(self, session=None, gate=None, session_factory=None, deadline: float = 3.0):
         self.gate = gate or nullcontext()  # 식당별 스레드가 공유하는 세마포어: 서버가 느릴 때 멈춘 요청이 쌓이지 않게
-        self.s = session or requests.Session(
+        self._factory = session_factory or (lambda: requests.Session(
             impersonate="chrome",
             headers={"Accept": "application/json", "Origin": "https://app.catchtable.co.kr", "Referer": "https://app.catchtable.co.kr/"},
-        )
+        ))
+        self.s = session or self._factory()
+        self.deadline = deadline  # curl timeout 위에 더 얹는 하드 데드라인 여유(초)
+        self._pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="ct-http")
         self.last_date_header: str | None = None
-        self._day_slots_only: set[str] = set()  # calendar가 가용성을 안 주는 걸로 판명된 식당
+
+    def _send(self, method: str, path: str, *, timeout: float, **kw):
+        """curl 타임아웃은 DNS 해석 단계를 못 끊는다(2026-10-01: 7~17분 매달림). 요청을 스레드에서 돌리고
+        timeout + deadline이 지나면 포기한다. 매달린 세션은 그 스레드에 남겨두고 새 세션으로 갈아탄다."""
+        session = self.s
+        fut = self._pool.submit(getattr(session, method), API + path, timeout=(min(timeout, 2.0), timeout), **kw)
+        try:
+            with self.gate:
+                return fut.result(timeout=timeout + self.deadline)
+        except FutureTimeout:
+            if self.s is session:
+                self.s = self._factory()
+            raise TimeoutError(f"{method.upper()} {path}: {timeout + self.deadline:.0f}s 안에 응답 없음 (세션 교체)") from None
 
     def _get(self, path: str, *, timeout: float, **params) -> dict:
-        with self.gate:
-            r = self.s.get(API + path, params=params, timeout=timeout)
+        r = self._send("get", path, timeout=timeout, params=params)
         r.raise_for_status()
         self.last_date_header = r.headers.get("date")
         return r.json()
@@ -67,8 +84,7 @@ class Client:
         return {date.fromisoformat(d["date"]): (d["availableStatus"], d["availablePersonCounts"]) for d in days}
 
     def _post(self, path: str, body: dict, *, timeout: float) -> dict:
-        with self.gate:
-            r = self.s.post(API + path, json=body, timeout=timeout)
+        r = self._send("post", path, timeout=timeout, json=body)
         r.raise_for_status()
         return r.json()
 

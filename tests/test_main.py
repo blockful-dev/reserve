@@ -78,3 +78,35 @@ def test_book_cli_passes_explicit_payment_choice(monkeypatch):
         m.main()
     assert stopped.value.code == 0
     assert seen[0][1] == {"times": ["18:00"], "table": "홀", "pay": "자동"}
+
+
+def test_pending_alarms_do_not_block_and_drain_in_order():
+    # 자동 모드의 정각 알림은 감시 루프를 막으면 안 된다(범위 밖 날짜가 있으면 폴링이 정각까지 멈추던 버그)
+    import time
+    from datetime import datetime, timedelta, timezone
+    notified, handled = [], []
+    alarms = m.PendingAlarms(now=lambda: datetime.now(timezone.utc), sleep=time.sleep, notify=lambda t, d, msg: notified.append(d))
+    t0 = time.perf_counter()
+    alarms.add(A, A.dates[0], datetime.now(timezone.utc) + timedelta(seconds=0.3), "정각")
+    assert time.perf_counter() - t0 < 0.1  # 즉시 돌아온다
+    alarms.drain(lambda t, d, msg: handled.append((d, msg)))  # 정각까지 기다렸다가 브라우저 처리
+    assert notified == [A.dates[0]] and handled == [(A.dates[0], "정각")]
+
+
+@pytest.mark.parametrize("argv", [["--limit"], ["--limit", "abc"], ["--regions"], ["--foods"], ["nonsense"]])
+def test_collect_cli_rejects_bad_arguments_with_a_message(monkeypatch, argv):
+    # 지적: 옵션 뒤 값이 없거나 숫자가 아니면 IndexError/ValueError 트레이스백으로 죽었다
+    monkeypatch.setattr(m, "connect", lambda: (_ for _ in ()).throw(AssertionError("DB에 닿기 전에 인자를 거부해야 한다")), raising=False)
+    with pytest.raises(SystemExit) as stopped:
+        m.collect_main(argv)
+    assert isinstance(stopped.value.code, str) and "사용법" in stopped.value.code
+
+
+def test_collect_cli_parses_options(monkeypatch):
+    got = {}
+    class FakeConn: pass
+    monkeypatch.setattr("ctwatch.db.connect", lambda: FakeConn())
+    monkeypatch.setattr("ctwatch.collect.collect", lambda conn, client, what, limit, regions=None, foods=None: got.update(what=what, limit=limit, regions=regions, foods=foods) or [])
+    monkeypatch.setattr(m, "Client", lambda: None)
+    m.collect_main(["list", "--limit", "40", "--regions", "CAT011001,CAT011002", "--foods", "top"])
+    assert got["what"] == "list" and got["limit"] == 40 and got["regions"] == ["CAT011001", "CAT011002"] and len(got["foods"]) == 8

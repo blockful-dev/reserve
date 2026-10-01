@@ -2,7 +2,7 @@ import { sql } from "./db";
 
 export type Range = "today" | "week" | "month" | "all";
 export type Sort = "time" | "popular";
-export type Filters = { q?: string; range?: Range; region?: string; food?: string; sort?: Sort; minPop?: number; cursor?: string; limit?: number };
+export type Filters = { q?: string; range?: Range; region?: string; food?: string; sort?: Sort; minPop?: number; past?: boolean; cursor?: string; limit?: number };
 
 export type { EventRow } from "./regions";
 import type { EventRow } from "./regions";
@@ -18,7 +18,7 @@ function decodeCursor(c?: string): { key: string; id: number } | null {
   return key !== undefined && id ? { key, id: Number(id) } : null;
 }
 
-/** 오픈 시각 → id 순 키셋 페이지네이션. 범위 경계는 KST 자정 기준. */
+/** 오픈 시각 → id 순 키셋 페이지네이션. 범위 경계는 KST 자정 기준. 기본은 지금 이후만; past=true면 오늘 0시부터. */
 export async function listEvents(f: Filters): Promise<{ rows: EventRow[]; nextCursor: string | null }> {
   const limit = Math.min(f.limit ?? PAGE, 100);
   const cur = decodeCursor(f.cursor);
@@ -32,7 +32,7 @@ export async function listEvents(f: Filters): Promise<{ rows: EventRow[]; nextCu
            to_char(e.target_start, 'YYYY-MM-DD') as target_start, to_char(e.target_end, 'YYYY-MM-DD') as target_end
     from open_events e join shops s on s.ref = e.shop_ref, kst
     where s.state is distinct from 'GONE'
-      and e.opens_at >= (kst.today::timestamp at time zone 'Asia/Seoul')
+      and e.opens_at >= ${f.past ? sql`(kst.today::timestamp at time zone 'Asia/Seoul')` : sql`now()`}
       ${range === "today" ? sql`and e.opens_at < ((kst.today + 1)::timestamp at time zone 'Asia/Seoul')` : sql``}
       ${range === "week" ? sql`and e.opens_at < ((kst.today + 7)::timestamp at time zone 'Asia/Seoul')` : sql``}
       ${range === "month" ? sql`and e.opens_at < ((date_trunc('month', kst.today) + interval '1 month')::timestamp at time zone 'Asia/Seoul')` : sql``}
@@ -70,3 +70,11 @@ export async function foods(): Promise<string[]> {
 }
 
 export { REGIONS } from "./regions";
+
+/** 오늘 KST 기준 이미 지난 오픈 수 — "지난 오픈 N건 보기" 토글용 */
+export async function passedToday(): Promise<number> {
+  const [r] = await sql`select count(*)::int as n from open_events e join shops s on s.ref = e.shop_ref
+    where s.state is distinct from 'GONE' and e.opens_at < now()
+      and e.opens_at >= ((now() at time zone 'Asia/Seoul')::date::timestamp at time zone 'Asia/Seoul')`;
+  return r.n;
+}

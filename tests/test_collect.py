@@ -91,9 +91,11 @@ def test_due_shops_selection(conn):
     C.store_schedules(conn, "ALW", ALWAYS)
     past = json.loads(json.dumps(MONTHLY)); past[0]["schedules"][0]["availableOpenDateTime"] = "2020-01-01T00:00:00+09:00"
     C.store_schedules(conn, "PAST", past)
-    C.store_schedules(conn, "FUT", MONTHLY)
+    fut = json.loads(json.dumps(MONTHLY)); fut[0]["schedules"][0]["availableOpenDateTime"] = "2030-01-01T14:00:00+09:00"  # 픽스처의 10/1은 이미 지났다
+    C.store_schedules(conn, "FUT", fut)
     at = C.now()  # 확인 시각은 실제 시계(clock_timestamp)라 기준도 실제 시계여야 한다
-    assert C.due_shops(conn, at) == ["NEW", "PAST"]
+    assert C.due_shops(conn, at) == ["NEW"]  # PAST는 조회 당시 이미 과거뿐 → 일주일 백오프
+    assert sorted(C.due_shops(conn, at + timedelta(days=8))) == ["NEW", "PAST"]
     assert sorted(C.due_shops(conn, at + timedelta(days=31))) == ["ALW", "FUT", "NEW", "PAST"]
 
 
@@ -173,3 +175,124 @@ def test_schedule_kind_change_updates_popularity(conn):
     C.store_schedules(conn, ref, MONTHLY)
     after = conn.execute("select popularity from shops where ref=%s", (ref,)).fetchone()["popularity"]
     assert float(after) == float(before) + 2.0
+
+
+def test_list_sweep_respects_page_budget_and_resumes_next_time(conn):
+    # 지적: 목록 훑기는 예산을 안 받아 집 IP에서 600건도 그대로 나갔다. 예산에 걸리면 멈추고, 다음 실행이 이어서 돈다
+    C.upsert_shop(conn, meta("OLD"), "CAT011001")  # 이번 체인에서 못 보면 결국 GONE
+    pages = {("CAT011001", "0"): (PAGE[:2], None), ("CAT011002", "0"): (PAGE[2:4], "n"), ("CAT011002", "n"): (PAGE[4:], None)}
+    fc = FakeClient(pages=pages)
+    # 전체 훑기(지역 10 + 상위 1 = 조합 11개). 데이터가 있는 건 앞 두 조합뿐, 나머지는 빈 페이지 1건씩
+    r1 = C.sweep_list(conn, fc, sleep=lambda s: None, max_pages=2)
+    assert r1.ok and r1.stats["truncated"] and r1.stats["pages"] == 2 and r1.stats["resume"] == {"combo": 1, "offset": "n", "combos": r1.stats["resume"]["combos"], "chain_started": r1.stats["resume"]["chain_started"]}
+    assert conn.execute("select state, missed_sweeps from shops where ref='OLD'").fetchone() == {"state": "A", "missed_sweeps": 0}  # 잘린 훑기: GONE 판정 보류
+    assert C.list_due(conn)  # 잘렸으면 바로 이어서 돌아야 한다
+    r2 = C.sweep_list(conn, fc, sleep=lambda s: None, max_pages=20)
+    assert r2.ok and not r2.stats.get("truncated") and r2.stats["pages"] == 1 + 9  # 이어서: 남은 페이지 1 + 빈 조합 9
+    assert conn.execute("select count(*) as n from shops where ref <> 'OLD'").fetchone()["n"] == 5
+    assert conn.execute("select missed_sweeps from shops where ref='OLD'").fetchone()["missed_sweeps"] == 1  # 체인 완주 → 1회 미관측
+    assert not C.list_due(conn)
+    C.sweep_list(conn, fc, sleep=lambda s: None)  # 두 번째 완주 → 두 번 연속 미관측
+    assert conn.execute("select state from shops where ref='OLD'").fetchone()["state"] == "GONE"
+
+
+def test_collect_splits_budget_between_list_and_schedules(conn):
+    C.upsert_shop(conn, meta("X"), "CAT011001")
+    calls = {"list": 0, "sched": 0}
+    class Fc:
+        def shop(self, alias): return None
+        def search_page(self, code, offset="0", food=None):
+            calls["list"] += 1; return ([PAGE[calls["list"] % 5]], "n" if calls["list"] < 50 else None)
+        def open_schedules(self, ref):
+            calls["sched"] += 1; return []
+    runs = C.collect(conn, Fc(), "all", limit=3, ip=lambda: "1.2.3.4", regions=["CAT011001"], sleep=lambda s: None)
+    assert [r.kind for r in runs] == ["health", "schedules", "list"]  # 일정(1건) 먼저, 남은 예산 2로 목록 2페이지
+    assert calls["sched"] == 1 and calls["list"] == 2 and runs[2].stats["truncated"]
+
+
+def test_health_treats_404_as_reachable_not_blocked(conn):
+    # 지적: 확인용 식당이 사라져 404가 나도 '차단'으로 오판하면 수집이 영구 정지한다. 차단은 403/429/연결 실패만
+    class Gone:
+        def shop(self, alias): raise RuntimeError("HTTP Error 404: ")
+    assert C.health(conn, Gone(), ip=lambda: "1.2.3.4").ok is True
+    class Blocked:
+        def shop(self, alias): raise RuntimeError("HTTP Error 403: ")
+    assert C.health(conn, Blocked(), ip=lambda: "1.2.3.4").ok is False
+    class Down:
+        def shop(self, alias): raise ConnectionError("timed out")
+    assert C.health(conn, Down(), ip=lambda: "1.2.3.4").ok is False
+
+
+def test_health_probes_a_known_shop_from_db_when_available(conn):
+    C.upsert_shop(conn, meta("R1", name="가게1") | {"urlPathAlias": "known_alias"}, "CAT011001")
+    asked = []
+    class Rec:
+        def shop(self, alias): asked.append(alias)
+    C.health(conn, Rec(), ip=lambda: "1.2.3.4")
+    assert asked == ["known_alias"]
+
+
+def test_schedule_sweep_skips_a_timed_out_shop_and_continues(conn):
+    # 10/1: 요청 하나가 매달려 run 전체가 FAILED, 예산 200 중 18건만 처리됐다. 네트워크 오류는 그 식당만 건너뛴다
+    for ref in ("A", "B", "C"):
+        C.upsert_shop(conn, meta(ref), "CAT011001")
+    class Flaky:
+        def open_schedules(self, ref):
+            if ref == "B": raise TimeoutError("Resolving timed out")
+            return MONTHLY
+    run = C.sweep_schedules(conn, Flaky(), sleep=lambda s: None)
+    assert run.ok and run.stats["done"] == 2 and run.stats["errors"] == 1 and run.stats["skipped"] == ["B"]
+    assert conn.execute("select schedule_checked_at is null as pending from shops where ref='B'").fetchone()["pending"]  # 다음에 다시
+
+
+def test_schedule_sweep_still_stops_on_block_or_many_errors(conn):
+    for ref in ("A", "B", "C", "D", "E", "F", "G"):
+        C.upsert_shop(conn, meta(ref), "CAT011001")
+    class Blocked:
+        def open_schedules(self, ref): raise RuntimeError("HTTP Error 403: ")
+    run = C.sweep_schedules(conn, Blocked(), sleep=lambda s: None)
+    assert run.ok is False and run.stats["done"] == 0
+    class Dead:
+        def open_schedules(self, ref): raise TimeoutError("down")
+    run = C.sweep_schedules(conn, Dead(), sleep=lambda s: None)
+    assert run.ok is False and run.stats["errors"] == 5  # 연속 5회면 네트워크가 죽은 것 — 더 두드리지 않는다
+
+
+def test_shop_whose_api_only_returns_past_opens_is_backed_off(conn):
+    # API가 과거 시각만 주는 일정(지난 SPECIAL 등)은 매일 재조회해도 결과가 같다 — 하루 예산의 15%가 헛돌았다
+    C.upsert_shop(conn, meta("STALE"), "CAT011001")
+    past = json.loads(json.dumps(MONTHLY)); past[0]["schedules"][0]["availableOpenDateTime"] = "2020-01-01T00:00:00+09:00"
+    C.store_schedules(conn, "STALE", past)
+    assert "STALE" not in C.due_shops(conn, C.now())  # 방금 봤고 과거뿐 → 당장 다시 보지 않는다
+    assert "STALE" in C.due_shops(conn, C.now() + timedelta(days=8))  # 일주일 뒤엔 다시
+    # 조회 당시엔 미래였던 이벤트가 그 뒤에 지난 경우는 평소처럼 바로 재조회 대상
+    C.upsert_shop(conn, meta("DUE"), "CAT011001")
+    recent = json.loads(json.dumps(MONTHLY)); recent[0]["schedules"][0]["availableOpenDateTime"] = (C.now() - timedelta(hours=1)).isoformat()
+    C.store_schedules(conn, "DUE", recent)
+    conn.execute("update shops set schedule_checked_at = now() - interval '2 days' where ref='DUE'"); conn.commit()
+    assert "DUE" in C.due_shops(conn, C.now())
+
+
+def test_collect_runs_schedules_before_the_weekly_list_sweep(conn):
+    # 사용자에게 중요한 건 기존 식당의 다음 오픈 시각. 목록 훑기가 예산을 먼저 다 쓰면 그 주 이틀은 일정이 0건이었다
+    C.upsert_shop(conn, meta("X"), "CAT011001")
+    order = []
+    class Fc:
+        def shop(self, alias): return None
+        def search_page(self, code, offset="0", food=None): order.append("list"); return ([], None)
+        def open_schedules(self, ref): order.append("sched"); return []
+    runs = C.collect(conn, Fc(), "all", limit=5, ip=lambda: "1.2.3.4", regions=["CAT011001"], sleep=lambda s: None)
+    assert [r.kind for r in runs] == ["health", "schedules", "list"] and order[0] == "sched"
+
+
+def test_old_past_events_are_pruned_after_a_sweep(conn):
+    # 재조회가 미뤄진 식당의 지난 이벤트가 쌓인다 — 화면엔 안 나오지만 30일 넘은 건 지운다
+    C.upsert_shop(conn, meta("P"), "CAT011001")
+    for when in ("2020-01-01T00:00:00+09:00", "2030-01-01T00:00:00+09:00"):
+        ev = json.loads(json.dumps(MONTHLY)); ev[0]["schedules"][0]["availableOpenDateTime"] = when
+        conn.execute("insert into open_events (shop_ref, schedule_type, opens_at, source) values ('P','MONTHLY_DATE',%s,'{}')", (when,)); conn.commit()
+    class Fc:
+        def open_schedules(self, ref): raise AssertionError("대상 없음")
+    conn.execute("update shops set schedule_checked_at=now(), schedule_kind='NONE'"); conn.commit()
+    C.sweep_schedules(conn, Fc(), sleep=lambda s: None)
+    assert [r["opens_at"].year for r in conn.execute("select opens_at from open_events order by opens_at").fetchall()] == [2030]

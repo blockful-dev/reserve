@@ -50,7 +50,14 @@ export default function EventList({ initial, initialCursor, now: serverNow }: Pr
     return () => io.disconnect();
   }, [cursor, loading, sp]);
 
-  if (!rows.length) return <p className="py-16 text-center text-neutral-500">조건에 맞는 오픈 일정이 없습니다.</p>;
+  if (!rows.length) {
+    return (
+      <div className="py-24 text-center">
+        <p className="text-lg">이 조건에 맞는 오픈이 없어요.</p>
+        <p className="mt-2 text-muted">기간을 넓히거나 지역·음식 조건을 풀어 보세요.</p>
+      </div>
+    );
+  }
 
   const groups: { day: string; label: string; items: EventRow[] }[] = [];
   for (const r of rows) {
@@ -63,45 +70,46 @@ export default function EventList({ initial, initialCursor, now: serverNow }: Pr
   return (
     <div>
       {groups.map((g, i) => (
-        <section key={`${g.day}-${i}`} className="mb-6">{/* 인기순에선 같은 날짜 그룹이 떨어져 반복된다 */}
-          <h2 className="sticky top-0 z-10 -mx-4 bg-neutral-50/95 px-4 py-2 text-sm font-semibold text-neutral-600 backdrop-blur dark:bg-neutral-950/95 dark:text-neutral-300">
-            {g.day === today ? "오늘 · " : ""}{g.label}
+        <section key={`${g.day}-${i}`} className="grid grid-cols-1 md:grid-cols-[9rem_1fr]">{/* 인기순에선 같은 날짜 그룹이 떨어져 반복된다 */}
+          <h2 className="sticky top-0 z-10 self-start bg-paper py-3 text-sm text-muted md:pt-6">
+            {g.day === today ? <span className="text-ink">오늘</span> : null} {g.label}
           </h2>
-          <ul className="divide-y divide-neutral-200 dark:divide-neutral-800">
+          <ul className="border-t border-line">
             {g.items.map((r) => {
               const at = new Date(r.opens_at); const past = at < now;
               const href = `https://app.catchtable.co.kr/ct/shop/${r.alias ?? r.shop_ref}${r.target_start ? `?date=${r.target_start.slice(2).replace(/-/g, "")}` : ""}`;
               return (
-                <li key={r.id} className={`flex items-center gap-3 py-3 ${past ? "opacity-50" : ""}`}>
-                  <div className="w-[4.5rem] shrink-0 sm:w-36">
-                    <div className="text-2xl font-bold tabular-nums leading-none">{kstTime(at)}</div>
-                    <div className="mt-1 text-xs text-neutral-500">{relative(at, now)}</div>
+                <li key={r.id} className={`grid grid-cols-[5.5rem_1fr] items-start gap-x-4 border-b border-line py-4 md:grid-cols-[6rem_3.5rem_1fr_auto] md:gap-x-6 ${past ? "text-ghost" : ""}`}>
+                  <div>
+                    <div className={`clock text-[1.6rem] md:text-[1.75rem] ${past ? "" : "text-ink"}`}>{kstTime(at)}</div>
+                    <div className={`mt-1.5 text-xs ${past ? "" : "text-accent"}`}>{past ? `${relative(at, now)}` : relative(at, now)}</div>
                   </div>
                   {r.image_url
-                    // eslint-disable-next-line @next/next/no-img-element -- 외부 CDN, 최적화 불필요(개인용)
-                    ? <img src={r.image_url} alt="" loading="lazy" className="h-14 w-14 shrink-0 rounded-md object-cover bg-neutral-200" />
-                    : <div className="h-14 w-14 shrink-0 rounded-md bg-neutral-200 dark:bg-neutral-800" />}
-                  <div className="min-w-0 flex-1">
-                    <div className="line-clamp-2 font-medium leading-tight">{r.name}</div>
-                    <div className="truncate text-sm text-neutral-500">{[r.land, r.food, r.region_code && REGIONS[r.region_code]].filter(Boolean).join(" · ")}</div>
-                    {(r.review_count || r.awards?.length > 0) && (
-                      <div className="truncate text-xs text-neutral-500">
-                        {r.avg_score != null && <span className="font-medium text-neutral-700 dark:text-neutral-300">★ {r.avg_score.toFixed(1)}</span>}
+                    ? <img src={r.image_url} alt="" loading="lazy" className={`hidden h-14 w-14 rounded-sm object-cover md:block ${past ? "opacity-40 grayscale" : ""}`} />
+                    : <div className="hidden h-12 w-12 rounded-sm bg-line md:block" />}
+                  <div className="min-w-0">
+                    <div className={`font-medium leading-tight ${past ? "" : "text-ink"}`}>{r.name}</div>
+                    <div className="mt-1 text-sm text-muted">{[r.land, r.food, r.region_code && REGIONS[r.region_code]].filter(Boolean).join(", ")}</div>
+                    <div className="mt-1 text-sm">{targetLabel(r.target_start, r.target_end)}</div>
+                    {((r.review_count ?? 0) >= 20 || r.awards?.length > 0) && (
+                      <div className="mt-1 text-sm text-muted">
+                        {r.avg_score != null && <span className="text-ink">{r.avg_score.toFixed(1)}</span>}
                         {r.review_count != null && <span> 리뷰 {r.review_count.toLocaleString()}</span>}
-                        {r.awards?.slice(0, 2).map((a) => <span key={a} className="ml-1 rounded bg-amber-100 px-1 text-amber-800 dark:bg-amber-900 dark:text-amber-200">{a}</span>)}
-                        {r.popularity != null && <span className="ml-1 text-neutral-400">인기 {r.popularity.toFixed(0)}</span>}
+                        {r.awards?.slice(0, 2).map((a) => <span key={a} className="ml-2 rounded-sm bg-accent-soft px-1.5 py-0.5 text-xs text-accent">{a}</span>)}
                       </div>
                     )}
-                    <div className="text-sm">{targetLabel(r.target_start, r.target_end)}</div>
                   </div>
-                  <a href={href} target="_blank" rel="noopener" className="shrink-0 rounded-lg border border-neutral-300 px-2.5 py-2 text-sm hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800">예약<span className="hidden sm:inline"> 페이지</span></a>
+                  <a href={href} target="_blank" rel="noopener"
+                     className="col-start-2 mt-3 justify-self-start border-b border-ink pb-0.5 text-sm font-medium text-ink hover:border-accent hover:text-accent md:col-start-auto md:mt-1.5 md:self-center">
+                    예약 페이지
+                  </a>
                 </li>
               );
             })}
           </ul>
         </section>
       ))}
-      <div ref={sentinel} className="h-8 text-center text-sm text-neutral-400">{loading ? "불러오는 중…" : cursor ? "" : "끝"}</div>
+      <div ref={sentinel} className="py-10 text-center text-sm text-ghost">{loading ? "불러오는 중" : cursor ? "" : "여기까지가 수집된 전부예요"}</div>
     </div>
   );
 }

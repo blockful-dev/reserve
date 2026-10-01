@@ -146,18 +146,41 @@ def report(items: list[Item], unknown, failed, client: Client) -> None:
         print(f"  식당 안내: {hint}\n  watchlist에 open_at: 'YYYY-MM-DD HH:MM' 을 직접 적어주세요.\n")
 
 
+COLLECT_USAGE = "사용법: ctwatch collect [auto|list|schedules|all|health] [--limit N] [--regions CODE,..] [--foods top|CODE,..]"
+
+
+def parse_collect_args(args: list[str]) -> tuple[str, int | None, list[str] | None, list[str] | None]:
+    """(what, limit, regions, foods). 잘못된 인자는 트레이스백 대신 사용법으로 거부한다."""
+    from ctwatch.client import CUISINE_TOP
+
+    what, limit, regions, foods, i = "auto", None, None, None, 0
+    while i < len(args):
+        a = args[i]
+        if a in ("--limit", "--regions", "--foods"):
+            if i + 1 >= len(args):
+                sys.exit(f"{a} 뒤에 값이 없습니다.\n{COLLECT_USAGE}")
+            v = args[i + 1]
+            if a == "--limit":
+                if not v.isdigit():
+                    sys.exit(f"--limit는 정수여야 합니다: {v!r}\n{COLLECT_USAGE}")
+                limit = int(v)
+            elif a == "--regions":
+                regions = v.split(",")
+            else:  # --foods top → 대분류 8개, 아니면 코드 목록
+                foods = list(CUISINE_TOP) if v == "top" else v.split(",")
+            i += 2
+        elif a in ("auto", "list", "schedules", "all", "health"):
+            what, i = a, i + 1
+        else:
+            sys.exit(f"알 수 없는 인자: {a!r}\n{COLLECT_USAGE}")
+    return what, limit, regions, foods
+
+
 def collect_main(args: list[str]) -> None:
     from ctwatch.collect import collect
     from ctwatch.db import connect
 
-    what = next((a for a in args if not a.startswith("--")), "auto")
-    limit = int(args[args.index("--limit") + 1]) if "--limit" in args else None
-    regions = args[args.index("--regions") + 1].split(",") if "--regions" in args else None
-    foods = None
-    if "--foods" in args:  # --foods top → 대분류 8개, 아니면 코드 목록
-        from ctwatch.client import CUISINE_TOP
-        v = args[args.index("--foods") + 1]
-        foods = list(CUISINE_TOP) if v == "top" else v.split(",")
+    what, limit, regions, foods = parse_collect_args(args)
     conn = connect()
     if what == "health":
         from ctwatch.collect import health
@@ -170,6 +193,24 @@ def collect_main(args: list[str]) -> None:
         if not run.ok:
             print("  ", run.conn.execute("select error from runs where id=%s", (run.id,)).fetchone()["error"], flush=True)
             sys.exit(1)
+
+
+class PendingAlarms:
+    """자동 모드의 정각 알림. 감시 루프를 막지 않도록 알림(소리·출력)은 별도 스레드가 정각에 내고,
+    브라우저 조작(창 하나뿐이라 스레드 간 공유 불가)은 감시가 끝난 뒤 drain()에서 순서대로 한다."""
+
+    def __init__(self, now, sleep, notify):
+        self.now, self.sleep, self.notify, self.items = now, sleep, notify, []
+
+    def add(self, target: Target, d: date, when: datetime, msg: str) -> None:
+        th = threading.Thread(target=lambda: (sleep_until(when, self.now, self.sleep), self.notify(target, d, msg)), daemon=True)
+        th.start()
+        self.items.append((target, d, msg, th))
+
+    def drain(self, handle) -> None:
+        for target, d, msg, th in self.items:
+            th.join()  # 정각 알림이 나간 뒤에 브라우저 처리
+            handle(target, d, msg)
 
 
 def run_auto(items: list[Item], client: Client) -> None:
@@ -206,12 +247,11 @@ def run_auto(items: list[Item], client: Client) -> None:
             print(f"[{now():%H:%M:%S.%f}] {'✅ 예약하기 직전까지 완료 — 지금 누르세요!' if r.ok else '❌ ' + r.step + ': ' + r.detail}", flush=True)
             alert(t.shop, "지금 예약하기를 누르세요!" if r.ok else f"자동 진행 실패({r.step}) — 직접 하세요", "Glass" if r.ok else "Basso")
 
-        def alarm_auto(t: Target, d: date, when: datetime, msg: str) -> None:
-            sleep_until(when, now, time.sleep)
-            finish_auto(t, d, msg)
+        alarms = PendingAlarms(now, time.sleep, lambda t, d, msg: alert(f"{t.shop} {d:%m/%d}", msg, "Glass"))
 
         print(f"[{now():%m-%d %H:%M:%S}] {target.shop} {open_at:%m-%d %H:%M:%S} 오픈 대기 중 (자동 모드, 예약하기 직전까지)… Ctrl+C로 중단", flush=True)
-        watch(targets, ref, open_at, client, now=now, sleep=time.sleep, finish=finish_auto, prepare=prepare_auto, alarm_at=alarm_auto)
+        watch(targets, ref, open_at, client, now=now, sleep=time.sleep, finish=finish_auto, prepare=prepare_auto, alarm_at=alarms.add)
+        alarms.drain(finish_auto)
         print("창을 10분 동안 열어둡니다. 7분 예약 찜 안에 예약하기를 누르세요.", flush=True)
         time.sleep(600)
         ctx.close()
@@ -239,7 +279,7 @@ def main() -> None:
     auto = "--auto" in sys.argv
     argv = [a for a in sys.argv if a != "--auto"]
     if len(argv) != 3 or argv[1] not in ("check", "run"):
-        sys.exit("사용법: ctwatch check|run <watchlist.yaml> [--auto]  |  ctwatch collect [auto|list|schedules|all|health] [--limit N]  |  ctwatch book <alias> <날짜> <인원> [HH:MM,..] [홀] [--pay 직접|자동]")
+        sys.exit("사용법: ctwatch check|run <watchlist.yaml> [--auto]  |  ctwatch collect …(collect --help)  |  ctwatch book <alias> <날짜> <인원> [HH:MM,..] [홀] [--pay 직접|자동]")
     client = Client()
     items, unknown, failed = plan(load(argv[2]), client)
     report(items, unknown, failed, client)
