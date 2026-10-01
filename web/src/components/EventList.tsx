@@ -79,18 +79,18 @@ export default function EventList({ initial, initialCursor, now: serverNow }: Pr
               const at = new Date(r.opens_at); const past = at < now;
               const href = `https://app.catchtable.co.kr/ct/shop/${r.alias ?? r.shop_ref}${r.target_start ? `?date=${r.target_start.slice(2).replace(/-/g, "")}` : ""}`;
               return (
-                <li key={r.id} className={`grid grid-cols-[5.5rem_1fr] items-start gap-x-4 border-b border-line py-5 md:grid-cols-[7rem_3.5rem_1fr_auto] md:gap-x-6 ${past ? "text-ghost" : ""}`}>
+                <li key={r.id} className={`grid grid-cols-[5.5rem_1fr] items-start gap-x-4 border-b border-line py-4 md:grid-cols-[6rem_3.5rem_1fr_auto] md:gap-x-6 ${past ? "text-ghost" : ""}`}>
                   <div>
-                    <div className={`clock text-[2rem] md:text-[2.5rem] ${past ? "" : "text-ink"}`}>{kstTime(at)}</div>
+                    <div className={`clock text-[1.6rem] md:text-[1.75rem] ${past ? "" : "text-ink"}`}>{kstTime(at)}</div>
                     <div className={`mt-1.5 text-xs ${past ? "" : "text-accent"}`}>{past ? `${relative(at, now)}` : relative(at, now)}</div>
                   </div>
                   {r.image_url
                     ? <img src={r.image_url} alt="" loading="lazy" className={`hidden h-14 w-14 rounded-sm object-cover md:block ${past ? "opacity-40 grayscale" : ""}`} />
-                    : <div className="hidden h-14 w-14 rounded-sm bg-line md:block" />}
+                    : <div className="hidden h-12 w-12 rounded-sm bg-line md:block" />}
                   <div className="min-w-0">
-                    <div className={`text-lg font-medium leading-tight ${past ? "" : "text-ink"}`}>{r.name}</div>
+                    <div className={`font-medium leading-tight ${past ? "" : "text-ink"}`}>{r.name}</div>
                     <div className="mt-1 text-sm text-muted">{[r.land, r.food, r.region_code && REGIONS[r.region_code]].filter(Boolean).join(", ")}</div>
-                    <div className="mt-2 text-sm">{targetLabel(r.target_start, r.target_end)}</div>
+                    <div className="mt-1 text-sm">{targetLabel(r.target_start, r.target_end)}</div>
                     {((r.review_count ?? 0) >= 20 || r.awards?.length > 0) && (
                       <div className="mt-1 text-sm text-muted">
                         {r.avg_score != null && <span className="text-ink">{r.avg_score.toFixed(1)}</span>}

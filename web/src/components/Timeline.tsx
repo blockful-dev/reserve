@@ -26,12 +26,12 @@ export default function Timeline({ events, now: serverNow }: { events: EventRow[
   const groups = new Map<string, EventRow[]>();
   for (const e of events) groups.set(bucket(e), [...(groups.get(bucket(e)) ?? []), e]);
   return (
-    <section aria-label="오늘의 오픈 시각" className="border-b border-line py-8">
+    <section aria-label="오늘의 오픈 시각" className="border-b border-line py-6">
       <div className="flex items-baseline justify-between text-sm text-muted">
         <span>오늘 {events.length ? `${events.length}건, 남은 ${events.filter((e) => new Date(e.opens_at) > now).length}건` : "예정된 오픈 없음"}</span>
         <span>{kstTime(now)} 기준</span>
       </div>
-      <div className="relative mt-6 h-20">
+      <div className="relative mt-4 h-16">
         {/* 축과 시각 눈금 */}
         <div className="absolute inset-x-0 top-8 h-px bg-line" />
         {[0, 6, 12, 18, 24].map((h) => (
@@ -55,8 +55,7 @@ export default function Timeline({ events, now: serverNow }: { events: EventRow[
           );
         })}
         {/* 현재 시각 */}
-        <div className="absolute top-3 h-10 w-px bg-ink transition-[left] duration-1000" style={{ left: `${nowPct}%` }} aria-hidden />
-        <div className="absolute top-0 -translate-x-1/2 text-xs text-ink" style={{ left: `${nowPct}%` }} aria-hidden>지금</div>
+        <div className="absolute top-5 h-6 w-px bg-ink transition-[left] duration-1000" style={{ left: `${nowPct}%` }} aria-hidden />
       </div>
     </section>
   );
