@@ -283,3 +283,16 @@ def test_collect_runs_schedules_before_the_weekly_list_sweep(conn):
         def open_schedules(self, ref): order.append("sched"); return []
     runs = C.collect(conn, Fc(), "all", limit=5, ip=lambda: "1.2.3.4", regions=["CAT011001"], sleep=lambda s: None)
     assert [r.kind for r in runs] == ["health", "schedules", "list"] and order[0] == "sched"
+
+
+def test_old_past_events_are_pruned_after_a_sweep(conn):
+    # 재조회가 미뤄진 식당의 지난 이벤트가 쌓인다 — 화면엔 안 나오지만 30일 넘은 건 지운다
+    C.upsert_shop(conn, meta("P"), "CAT011001")
+    for when in ("2020-01-01T00:00:00+09:00", "2030-01-01T00:00:00+09:00"):
+        ev = json.loads(json.dumps(MONTHLY)); ev[0]["schedules"][0]["availableOpenDateTime"] = when
+        conn.execute("insert into open_events (shop_ref, schedule_type, opens_at, source) values ('P','MONTHLY_DATE',%s,'{}')", (when,)); conn.commit()
+    class Fc:
+        def open_schedules(self, ref): raise AssertionError("대상 없음")
+    conn.execute("update shops set schedule_checked_at=now(), schedule_kind='NONE'"); conn.commit()
+    C.sweep_schedules(conn, Fc(), sleep=lambda s: None)
+    assert [r["opens_at"].year for r in conn.execute("select opens_at from open_events order by opens_at").fetchall()] == [2030]

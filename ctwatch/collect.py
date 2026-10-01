@@ -254,6 +254,9 @@ def sweep_schedules(conn: Connection, client: Client, sleep=time.sleep, limit: i
             done += 1
             run.stats["done"] = done
             sleep(pause())
+        pruned = conn.execute("delete from open_events where opens_at < now() - interval '30 days'").rowcount  # 재조회가 미뤄진 식당의 흔적
+        conn.commit()
+        run.stats["pruned"] = pruned
         run.finish(True)
     except Exception as e:
         run.finish(False, repr(e))

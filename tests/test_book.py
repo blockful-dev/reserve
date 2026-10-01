@@ -144,3 +144,13 @@ def test_pick_time_waits_for_busy_slots_to_load(browser):
         assert pick_time(page, ["18:00"], lambda m: None) == "오후 6:00"
     finally:
         page.close()
+
+
+def test_trim_profile_cache_removes_only_cache_dirs(tmp_path, monkeypatch):
+    import ctwatch.book as B
+    monkeypatch.setattr(B, "PROFILE", tmp_path)
+    for d in ("Cache", "Code Cache", "Local Storage"):
+        (tmp_path / "Default" / d).mkdir(parents=True); (tmp_path / "Default" / d / "x").write_text("1")
+    (tmp_path / "Default" / "Cookies").write_text("session")
+    B.trim_profile_cache()
+    assert sorted(p.name for p in (tmp_path / "Default").iterdir()) == ["Cookies", "Local Storage"]

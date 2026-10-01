@@ -288,7 +288,15 @@ def book(page: Page, url: str, *, times: list[str] | None = None, table: str | N
     return Result(done, "done", page.url)
 
 
+def trim_profile_cache() -> None:
+    """프로필의 브라우저 캐시(수십~수백 MB)를 비운다. 로그인 쿠키·세션은 Default/Cookies 등에 따로 있어 영향 없다."""
+    import shutil
+    for d in ("Cache", "Code Cache", "GPUCache", "DawnWebGPUCache", "DawnGraphiteCache"):
+        shutil.rmtree(PROFILE / "Default" / d, ignore_errors=True)
+
+
 def open_browser(p):
+    trim_profile_cache()
     ctx = p.chromium.launch_persistent_context(str(PROFILE), headless=False, channel="chromium",
                                               viewport={"width": 480, "height": 900}, locale="ko-KR", timezone_id="Asia/Seoul")
     return ctx, (ctx.pages[0] if ctx.pages else ctx.new_page())
