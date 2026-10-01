@@ -49,6 +49,7 @@ def health(conn: Connection, client: Client, ip=public_ip) -> Run:
     return run
 LIST_EVERY = timedelta(days=7)
 RECHECK_EVERY = timedelta(days=30)
+STALE_RETRY = timedelta(days=7)  # API가 과거 시각만 주는 일정은 매일 봐도 같다 — 일주일에 한 번만
 GONE_AFTER = 2  # 연속으로 못 본 훑기 횟수
 MAX_STREAK = 5  # 일정 훑기에서 연속 실패 허용 — 넘으면 네트워크가 죽은 것
 
@@ -196,9 +197,12 @@ def due_shops(conn: Connection, at: datetime) -> list[str]:
              and (s.schedule_checked_at is null
                   or s.schedule_checked_at < %(at)s - %(recheck)s
                   or (s.schedule_kind not in ('ALWAYS', 'NONE')
-                      and not exists (select 1 from open_events e where e.shop_ref = s.ref and e.opens_at > %(at)s)))
+                      and not exists (select 1 from open_events e where e.shop_ref = s.ref and e.opens_at > %(at)s)
+                      -- 마지막 조회 때 이미 과거뿐이었다면(= 이벤트가 조회 전에 지남) API가 바뀔 때까지 기다린다
+                      and (s.schedule_checked_at < %(at)s - %(stale)s
+                           or exists (select 1 from open_events e where e.shop_ref = s.ref and e.opens_at > s.schedule_checked_at))))
            order by s.schedule_checked_at nulls first, s.ref""",
-        {"at": at, "recheck": RECHECK_EVERY})]
+        {"at": at, "recheck": RECHECK_EVERY, "stale": STALE_RETRY})]
 
 
 def store_schedules(conn: Connection, ref: str, schedules: list[dict]) -> str:
@@ -266,11 +270,12 @@ def collect(conn: Connection, client: Client, what: str = "auto", limit: int | N
     runs = [h]
     if not h.ok:
         return runs  # 차단 중: 두드리지 않는다. 다음 예약 실행(하루 뒤)에 다시 확인
-    limit = budget(limit, h.stats.get("ip"))  # 이 실행의 총 요청 예산 (목록 페이지 + 일정 조회)
-    if what in ("list", "all") or (what == "auto" and list_due(conn)):
-        runs.append(sweep_list(conn, client, sleep, regions=regions, foods=foods, max_pages=limit))
-        if limit is not None:
-            limit = max(0, limit - runs[-1].stats.get("pages", 0))
-    if what in ("schedules", "all", "auto") and limit != 0:
+    limit = budget(limit, h.stats.get("ip"))  # 이 실행의 총 요청 예산 (일정 조회 + 목록 페이지)
+    # 일정이 먼저: 기존 식당의 다음 오픈 시각이 신규 식당 발견보다 중요하다. 목록 훑기는 남는 예산으로(잘리면 이어서)
+    if what in ("schedules", "all", "auto"):
         runs.append(sweep_schedules(conn, client, sleep, limit=limit))
+        if limit is not None:
+            limit = max(0, limit - runs[-1].stats.get("done", 0) - runs[-1].stats.get("errors", 0))
+    if (what in ("list", "all") or (what == "auto" and list_due(conn))) and limit != 0:
+        runs.append(sweep_list(conn, client, sleep, regions=regions, foods=foods, max_pages=limit))
     return runs

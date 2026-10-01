@@ -94,7 +94,8 @@ def test_due_shops_selection(conn):
     fut = json.loads(json.dumps(MONTHLY)); fut[0]["schedules"][0]["availableOpenDateTime"] = "2030-01-01T14:00:00+09:00"  # 픽스처의 10/1은 이미 지났다
     C.store_schedules(conn, "FUT", fut)
     at = C.now()  # 확인 시각은 실제 시계(clock_timestamp)라 기준도 실제 시계여야 한다
-    assert C.due_shops(conn, at) == ["NEW", "PAST"]
+    assert C.due_shops(conn, at) == ["NEW"]  # PAST는 조회 당시 이미 과거뿐 → 일주일 백오프
+    assert sorted(C.due_shops(conn, at + timedelta(days=8))) == ["NEW", "PAST"]
     assert sorted(C.due_shops(conn, at + timedelta(days=31))) == ["ALW", "FUT", "NEW", "PAST"]
 
 
@@ -205,8 +206,8 @@ def test_collect_splits_budget_between_list_and_schedules(conn):
         def open_schedules(self, ref):
             calls["sched"] += 1; return []
     runs = C.collect(conn, Fc(), "all", limit=3, ip=lambda: "1.2.3.4", regions=["CAT011001"], sleep=lambda s: None)
-    assert [r.kind for r in runs] == ["health", "list"]  # 예산 3 = 목록 3페이지, 남은 예산 0이면 일정 단계는 요청 없이 건너뜀
-    assert calls["list"] == 3 and calls["sched"] == 0 and runs[1].stats["truncated"]
+    assert [r.kind for r in runs] == ["health", "schedules", "list"]  # 일정(1건) 먼저, 남은 예산 2로 목록 2페이지
+    assert calls["sched"] == 1 and calls["list"] == 2 and runs[2].stats["truncated"]
 
 
 def test_health_treats_404_as_reachable_not_blocked(conn):
@@ -255,3 +256,30 @@ def test_schedule_sweep_still_stops_on_block_or_many_errors(conn):
         def open_schedules(self, ref): raise TimeoutError("down")
     run = C.sweep_schedules(conn, Dead(), sleep=lambda s: None)
     assert run.ok is False and run.stats["errors"] == 5  # 연속 5회면 네트워크가 죽은 것 — 더 두드리지 않는다
+
+
+def test_shop_whose_api_only_returns_past_opens_is_backed_off(conn):
+    # API가 과거 시각만 주는 일정(지난 SPECIAL 등)은 매일 재조회해도 결과가 같다 — 하루 예산의 15%가 헛돌았다
+    C.upsert_shop(conn, meta("STALE"), "CAT011001")
+    past = json.loads(json.dumps(MONTHLY)); past[0]["schedules"][0]["availableOpenDateTime"] = "2020-01-01T00:00:00+09:00"
+    C.store_schedules(conn, "STALE", past)
+    assert "STALE" not in C.due_shops(conn, C.now())  # 방금 봤고 과거뿐 → 당장 다시 보지 않는다
+    assert "STALE" in C.due_shops(conn, C.now() + timedelta(days=8))  # 일주일 뒤엔 다시
+    # 조회 당시엔 미래였던 이벤트가 그 뒤에 지난 경우는 평소처럼 바로 재조회 대상
+    C.upsert_shop(conn, meta("DUE"), "CAT011001")
+    recent = json.loads(json.dumps(MONTHLY)); recent[0]["schedules"][0]["availableOpenDateTime"] = (C.now() - timedelta(hours=1)).isoformat()
+    C.store_schedules(conn, "DUE", recent)
+    conn.execute("update shops set schedule_checked_at = now() - interval '2 days' where ref='DUE'"); conn.commit()
+    assert "DUE" in C.due_shops(conn, C.now())
+
+
+def test_collect_runs_schedules_before_the_weekly_list_sweep(conn):
+    # 사용자에게 중요한 건 기존 식당의 다음 오픈 시각. 목록 훑기가 예산을 먼저 다 쓰면 그 주 이틀은 일정이 0건이었다
+    C.upsert_shop(conn, meta("X"), "CAT011001")
+    order = []
+    class Fc:
+        def shop(self, alias): return None
+        def search_page(self, code, offset="0", food=None): order.append("list"); return ([], None)
+        def open_schedules(self, ref): order.append("sched"); return []
+    runs = C.collect(conn, Fc(), "all", limit=5, ip=lambda: "1.2.3.4", regions=["CAT011001"], sleep=lambda s: None)
+    assert [r.kind for r in runs] == ["health", "schedules", "list"] and order[0] == "sched"
