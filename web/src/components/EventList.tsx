@@ -16,6 +16,7 @@ export default function EventList({ initial, initialCursor, now: serverNow }: Pr
   const { rows, cursor } = state;
   const [now, setNow] = useState(new Date(serverNow));
   const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
   const sentinel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,21 +35,31 @@ export default function EventList({ initial, initialCursor, now: serverNow }: Pr
     const first = setTimeout(tick, 0);
     return () => { clearInterval(t); clearTimeout(first); };
   }, [key]);
-  useEffect(() => { try { sessionStorage.setItem(key, JSON.stringify({ rows, cursor })); } catch {} }, [key, rows, cursor]);
+  // 복원이 끝난 뒤에만 저장한다 — 마운트 직후 초기 목록으로 저장본을 덮어쓰면 복원할 게 없어진다
+  useEffect(() => { if (state.restored) try { sessionStorage.setItem(key, JSON.stringify({ rows, cursor })); } catch {} }, [key, rows, cursor, state.restored]);
 
-  useEffect(() => {
-    if (!cursor || !sentinel.current) return;
-    const io = new IntersectionObserver(async ([e]) => {
-      if (!e.isIntersecting || loading) return;
-      setLoading(true);
+  const loadMore = async () => {
+    if (!cursor || loading) return;
+    setLoading(true); setFailed(false);
+    try {
       const p = new URLSearchParams(sp.toString()); p.set("cursor", cursor);
-      const r = await fetch(`/api/events?${p}`).then((x) => x.json());
+      const res = await fetch(`/api/events?${p}`);
+      if (!res.ok) throw new Error(String(res.status));
+      const r = await res.json();
       setState((s) => { const ids = new Set(s.rows.map((x) => x.id)); return { ...s, rows: [...s.rows, ...r.rows.filter((x: EventRow) => !ids.has(x.id))], cursor: r.nextCursor }; });
+    } catch {
+      setFailed(true);
+    } finally {
       setLoading(false);
-    }, { rootMargin: "600px" });
+    }
+  };
+  useEffect(() => {
+    if (!cursor || failed || !sentinel.current) return;
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) loadMore(); }, { rootMargin: "600px" });
     io.observe(sentinel.current);
     return () => io.disconnect();
-  }, [cursor, loading, sp]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cursor, loading, failed, sp]);
 
   if (!rows.length) {
     return (
@@ -109,7 +120,11 @@ export default function EventList({ initial, initialCursor, now: serverNow }: Pr
           </ul>
         </section>
       ))}
-      <div ref={sentinel} className="py-10 text-center text-sm text-ghost">{loading ? "불러오는 중" : cursor ? "" : "여기까지가 수집된 전부예요"}</div>
+      <div ref={sentinel} className="py-10 text-center text-sm text-ghost">
+        {loading ? "불러오는 중"
+          : failed ? <>더 불러오지 못했어요. <button type="button" onClick={loadMore} className="border-b border-ink text-ink">다시 시도</button></>
+          : cursor ? "" : "여기까지가 수집된 전부예요"}
+      </div>
     </div>
   );
 }

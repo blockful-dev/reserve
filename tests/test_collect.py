@@ -136,10 +136,46 @@ def test_collect_does_nothing_while_blocked(conn):
     assert [r.kind for r in runs] == ["health"]
 
 
-def test_home_ip_gets_the_lower_cap():
-    assert C.budget(500, "112.148.172.190") == 200
-    assert C.budget(500, "211.234.180.121") == 500
-    assert C.budget(100, "112.148.1.1") == 100
+def test_home_ip_cap_is_per_day_not_per_run(conn):
+    assert C.budget(500, "112.148.172.190", used=0) == 200
+    assert C.budget(500, "211.234.180.121", used=190) == 500  # 밖에서는 상한 없음
+    assert C.budget(100, "112.148.1.1", used=0) == 100
+    assert C.budget(None, "112.148.1.1", used=150) == 50  # 오늘 이미 150건 → 50건 남음
+    assert C.budget(0, "112.148.1.1", used=0) == 0  # 지적: --limit 0이 집 IP에서 200으로 바뀌던 버그
+    # 지난 24시간의 runs에서 쓴 요청 수: health 1건 + 일정 done+errors + 목록 pages
+    for kind, stats, age in (("health", {}, "1 hour"), ("schedules", {"done": 30, "errors": 2}, "2 hours"), ("list", {"pages": 40}, "3 hours"), ("list", {"pages": 999}, "30 hours")):
+        conn.execute("insert into runs (kind, stats, started_at, ok) values (%s, %s, now() - %s::interval, true)", (kind, json.dumps(stats), age))
+    conn.commit()
+    assert C.used_recently(conn) == 73
+
+
+def test_collect_on_home_ip_stops_when_the_daily_cap_is_spent(conn):
+    C.upsert_shop(conn, meta("X"), "CAT011001")
+    conn.execute("insert into runs (kind, stats, ok) values ('schedules', %s, true)", (json.dumps({"done": 199, "errors": 0}),)); conn.commit()
+    class Fc:
+        def shop(self, alias): return None
+        def open_schedules(self, ref): raise AssertionError("예산이 없으면 조회하면 안 된다")
+    runs = C.collect(conn, Fc(), "all", ip=lambda: "112.148.1.1", sleep=lambda s: None)
+    assert [r.kind for r in runs] == ["health"]  # health 1건으로 200 소진
+
+
+def test_collect_does_not_start_the_list_sweep_after_schedules_hit_a_block(conn):
+    # 지적: 일정 훑기가 403으로 끝나도 collect가 결과를 안 보고 목록 훑기로 넘어갔다
+    C.upsert_shop(conn, meta("X"), "CAT011001")
+    class Fc:
+        def shop(self, alias): return None
+        def open_schedules(self, ref): raise RuntimeError("HTTP Error 403")
+        def search_page(self, *a): raise AssertionError("차단 뒤에 목록을 두드리면 안 된다")
+    runs = C.collect(conn, Fc(), "all", ip=lambda: "1.2.3.4", sleep=lambda s: None)
+    assert [r.kind for r in runs] == ["health", "schedules"] and runs[1].ok is False
+
+
+def test_specific_region_code_is_kept_and_filled_in_over_the_seoul_wide_one(conn):
+    # 지적: 음식별 훑기(CAT011)에서 먼저 발견된 식당은 세부 지역을 영영 못 받았다
+    C.upsert_shop(conn, meta("X"), "CAT011")
+    C.upsert_shop(conn, meta("X"), "CAT011003")
+    C.upsert_shop(conn, meta("X"), "CAT011")
+    assert conn.execute("select region_code from shops where ref='X'").fetchone()["region_code"] == "CAT011003"
 
 
 def test_pause_has_jitter_within_bounds():

@@ -59,18 +59,40 @@ def test_calendar_maps_date_to_status_and_person_counts():
     assert s.kwargs == {"timeout": (1.5, 1.5)}  # 폴링은 멈춘 요청 하나에 오래 묶이면 안 된다
 
 
-def test_every_request_goes_through_the_gate():
+def test_every_request_starts_only_after_the_gate_is_held():
+    # 지적: 스레드에 제출한 뒤 세마포어를 잡으면 MAX_PARALLEL이 실제 요청 수를 못 막는다. 게이트 안에서 요청이 시작돼야 한다
+    log = []
+
     class Gate:
-        log = []
+        def __enter__(self): log.append("in")
+        def __exit__(self, *a): log.append("out")
 
-        def __enter__(self):
-            self.log.append("in")
+    class Session(FakeSession):
+        def get(self, url, params=None, **kw):
+            log.append("request")
+            return super().get(url, params, **kw)
 
-        def __exit__(self, *a):
-            self.log.append("out")
+    Client(Session("calendar_available.json"), gate=Gate()).calendar("REF")
+    assert log == ["in", "request", "out"]
 
-    Client(FakeSession("calendar_available.json"), gate=Gate()).calendar("REF")
-    assert Gate.log == ["in", "out"]
+
+def test_hung_request_thread_does_not_hold_up_interpreter_exit_or_later_requests():
+    # 지적: 포기한 요청의 스레드가 작업자 풀을 점유하고 종료를 막는다 → 요청마다 데몬 스레드, 풀 없음
+    import threading
+    gate = threading.BoundedSemaphore(1)
+
+    class Hanging:
+        def get(self, url, params=None, **kw):
+            threading.Event().wait(60)  # 데몬이라 테스트 종료를 막지 않는다
+            return FakeResponse("calendar_available.json")
+
+    c = Client(session_factory=Hanging, gate=gate, deadline=0.05)
+    for _ in range(5):  # 풀이 4개였다면 5번째부터 영영 대기
+        with pytest.raises(TimeoutError):
+            c.calendar("REF")
+    hung = [t for t in threading.enumerate() if t.name.startswith("ct-http")]
+    assert len(hung) == 5 and all(t.daemon for t in hung)
+    assert gate._value == 1  # 포기해도 게이트는 돌려준다
 
 
 CAL, SLOTS = "https://ct-api.catchtable.co.kr/api/reservation/v2/dining/calendar", "https://ct-api.catchtable.co.kr/api/reservation/v1/dining/day-slots"

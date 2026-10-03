@@ -8,7 +8,8 @@ for c in brew uv pnpm; do command -v $c >/dev/null || { echo "$c 가 필요합�
 brew list postgresql@15 >/dev/null 2>&1 || brew install postgresql@15
 brew services start postgresql@15 >/dev/null; sleep 3
 uv sync && uv run playwright install chromium
-(cd web && pnpm install --silent && [[ -f .env.local ]] || echo 'DATABASE_URL=postgresql://localhost/ctopen' > web/.env.local)
+(cd web && pnpm install --silent)
+[[ -f web/.env.local ]] || echo 'DATABASE_URL=postgresql://localhost/ctopen' > web/.env.local
 psql -lqt | cut -d'|' -f1 | grep -qw ctopen_test || createdb ctopen_test
 if psql -lqt | cut -d'|' -f1 | grep -qw ctopen; then
   echo "ctopen DB가 이미 있어 복원을 건너뜁니다 (다시 하려면 scripts/db-restore.sh backups/latest.sql.gz)"

@@ -12,7 +12,7 @@ from ctwatch.client import CUISINE_TOP, SEOUL_REGIONS, Client
 
 RATE = 2.5  # 최소 요청 간격(초). 1.0 고정 간격으로 9천 건 돌린 뒤 IP가 Cloudflare에 차단됐다(2026-09-24)
 HOME_IP_PREFIXES = ("112.148.",)  # 집 회선. 한 번 차단된 적 있으니 여기서는 더 아낀다
-HOME_CAP = 200
+HOME_CAP = 200  # 집 회선의 하루(지난 24시간) 요청 상한 — 실행당이 아니다 (하루 2회 실행)
 
 
 def pause() -> float:
@@ -20,10 +20,21 @@ def pause() -> float:
     return random.uniform(RATE, RATE * 2.5)
 
 
-def budget(limit: int | None, ip: str | None) -> int | None:
+def budget(limit: int | None, ip: str | None, used: int = 0) -> int | None:
+    """이 실행의 요청 예산. 집 IP면 하루 상한에서 지난 24시간에 쓴 만큼 뺀다. limit=0은 0이다(None과 다름)."""
     if ip and ip.startswith(HOME_IP_PREFIXES):
-        return min(limit or HOME_CAP, HOME_CAP)
+        left = max(0, HOME_CAP - used)
+        return left if limit is None else min(limit, left)
     return limit
+
+
+def used_recently(conn: Connection) -> int:
+    """지난 24시간 runs가 쓴 요청 수: health 1건, 일정 done+errors, 목록 pages."""
+    total = 0
+    for r in conn.execute("select kind, stats from runs where started_at > clock_timestamp() - interval '24 hours'"):
+        st = r["stats"]
+        total += 1 if r["kind"] == "health" else st.get("done", 0) + st.get("errors", 0) + st.get("pages", 0)
+    return total
 
 
 def public_ip() -> str | None:
@@ -110,6 +121,8 @@ def upsert_shop(conn: Connection, m: dict, region_code: str, days: list[dict] | 
                               review_count, avg_score, awards, sold_out_days)
            values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
            on conflict (ref) do update set alias=excluded.alias, name=excluded.name, land=excluded.land, food=excluded.food,
+             -- 서울 전체(CAT011)로 훑은 결과는 세부 지역을 모른다: 이미 아는 세부 지역을 덮지 않는다
+             region_code=case when excluded.region_code = 'CAT011' then shops.region_code else excluded.region_code end,
              lat=excluded.lat, lon=excluded.lon, image_url=excluded.image_url, service=excluded.service,
              state=case when excluded.state is null then shops.state else excluded.state end,
              review_count=coalesce(excluded.review_count, shops.review_count), avg_score=coalesce(excluded.avg_score, shops.avg_score),
@@ -273,10 +286,14 @@ def collect(conn: Connection, client: Client, what: str = "auto", limit: int | N
     runs = [h]
     if not h.ok:
         return runs  # 차단 중: 두드리지 않는다. 다음 예약 실행(하루 뒤)에 다시 확인
-    limit = budget(limit, h.stats.get("ip"))  # 이 실행의 총 요청 예산 (일정 조회 + 목록 페이지)
+    limit = budget(limit, h.stats.get("ip"), used_recently(conn))  # 이 실행의 총 요청 예산 (일정 조회 + 목록 페이지)
+    if limit == 0:
+        return runs
     # 일정이 먼저: 기존 식당의 다음 오픈 시각이 신규 식당 발견보다 중요하다. 목록 훑기는 남는 예산으로(잘리면 이어서)
     if what in ("schedules", "all", "auto"):
         runs.append(sweep_schedules(conn, client, sleep, limit=limit))
+        if not runs[-1].ok:
+            return runs  # 차단(403/429)이나 연속 실패로 끝났다: 목록까지 두드리지 않는다
         if limit is not None:
             limit = max(0, limit - runs[-1].stats.get("done", 0) - runs[-1].stats.get("errors", 0))
     if (what in ("list", "all") or (what == "auto" and list_due(conn))) and limit != 0:

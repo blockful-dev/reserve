@@ -4,7 +4,7 @@ from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import date
 
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+import threading
 
 from curl_cffi import requests
 
@@ -41,21 +41,32 @@ class Client:
         ))
         self.s = session or self._factory()
         self.deadline = deadline  # curl timeout 위에 더 얹는 하드 데드라인 여유(초)
-        self._pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="ct-http")
         self.last_date_header: str | None = None
 
     def _send(self, method: str, path: str, *, timeout: float, **kw):
-        """curl 타임아웃은 DNS 해석 단계를 못 끊는다(2026-10-01: 7~17분 매달림). 요청을 스레드에서 돌리고
-        timeout + deadline이 지나면 포기한다. 매달린 세션은 그 스레드에 남겨두고 새 세션으로 갈아탄다."""
-        session = self.s
-        fut = self._pool.submit(getattr(session, method), API + path, timeout=(min(timeout, 2.0), timeout), **kw)
-        try:
-            with self.gate:
-                return fut.result(timeout=timeout + self.deadline)
-        except FutureTimeout:
+        """curl 타임아웃은 DNS 해석 단계를 못 끊는다(2026-10-01: 7~17분 매달림). 요청을 데몬 스레드에서 돌리고
+        timeout + deadline이 지나면 포기한다. 매달린 세션은 그 스레드에 남겨두고 새 세션으로 갈아탄다.
+        스레드 풀을 쓰지 않는다 — 매달린 요청이 작업자를 다 점유하거나 인터프리터 종료를 붙잡으면 안 된다.
+        게이트(동시 요청 상한)는 요청이 시작되기 전에 잡는다."""
+        session, box = self.s, {}
+
+        def work():
+            try:
+                box["r"] = getattr(session, method)(API + path, timeout=(min(timeout, 2.0), timeout), **kw)
+            except BaseException as e:
+                box["e"] = e
+
+        with self.gate:
+            t = threading.Thread(target=work, name="ct-http", daemon=True)
+            t.start()
+            t.join(timeout + self.deadline)
+        if t.is_alive():
             if self.s is session:
                 self.s = self._factory()
-            raise TimeoutError(f"{method.upper()} {path}: {timeout + self.deadline:.0f}s 안에 응답 없음 (세션 교체)") from None
+            raise TimeoutError(f"{method.upper()} {path}: {timeout + self.deadline:.0f}s 안에 응답 없음 (세션 교체)")
+        if "e" in box:
+            raise box["e"]
+        return box["r"]
 
     def _get(self, path: str, *, timeout: float, **params) -> dict:
         r = self._send("get", path, timeout=timeout, params=params)

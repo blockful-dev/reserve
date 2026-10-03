@@ -237,13 +237,20 @@ def run_auto(items: list[Item], client: Client) -> None:
             if not ok or not logged:
                 alert(t.shop, "자동 모드 준비 실패 — 직접 할 준비를 하세요", "Basso")
 
+        prepared: list[str] = []  # 창은 하나다: 첫 폼이 준비되면 그 뒤 대상은 알림만 — 다음 대상으로 이동하면 준비된 폼이 사라진다
+
         def finish_auto(t: Target, d: date, msg: str) -> None:
             alert(f"{t.shop} {d:%m/%d}", msg, "Glass")
+            if prepared:
+                print(f"[{now():%H:%M:%S.%f}] {t.shop} {d:%m/%d} {t.party}명 — {msg} (창은 {prepared[0]} 폼에 두었습니다. 이건 직접 하세요)", flush=True)
+                return
             print(f"[{now():%H:%M:%S.%f}] {t.shop} {d:%m/%d} {t.party}명 — {msg} → 자동 진행", flush=True)
             try:
                 r = book(page, deeplink(t.shop, d, t.party), times=list(t.times) or None, table=t.table, pay=t.pay, log=print)
             except Exception as e:
                 r = type("R", (), {"ok": False, "step": "error", "detail": repr(e)})()
+            if r.ok:
+                prepared.append(f"{d:%m/%d} {t.party}명")
             print(f"[{now():%H:%M:%S.%f}] {'✅ 예약하기 직전까지 완료 — 지금 누르세요!' if r.ok else '❌ ' + r.step + ': ' + r.detail}", flush=True)
             alert(t.shop, "지금 예약하기를 누르세요!" if r.ok else f"자동 진행 실패({r.step}) — 직접 하세요", "Glass" if r.ok else "Basso")
 

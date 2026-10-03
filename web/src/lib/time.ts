@@ -1,15 +1,20 @@
 export const TZ = "Asia/Seoul";
 
+// Intl.DateTimeFormat 생성은 비싸다 — 목록 행마다 새로 만들지 않고 모듈에서 한 번만
 const fmt = (opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("ko-KR", { timeZone: TZ, ...opts });
+const DATE = fmt({ year: "numeric", month: "2-digit", day: "2-digit" });
+const TIME = fmt({ hour: "2-digit", minute: "2-digit", hour12: false });
+const DAY_LABEL = fmt({ month: "long", day: "numeric", weekday: "short" });
+const SHORT = fmt({ month: "numeric", day: "numeric" });
 
 /** KST 기준 YYYY-MM-DD — 서버·클라이언트가 같은 값을 내야 hydration이 어긋나지 않는다 */
 export function kstDate(d: Date): string {
-  const p = Object.fromEntries(fmt({ year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(d).map((x) => [x.type, x.value]));
+  const p = Object.fromEntries(DATE.formatToParts(d).map((x) => [x.type, x.value]));
   return `${p.year}-${p.month}-${p.day}`;
 }
-export const kstTime = (d: Date) => fmt({ hour: "2-digit", minute: "2-digit", hour12: false }).format(d);
-export const kstDayLabel = (d: Date) => fmt({ month: "long", day: "numeric", weekday: "short" }).format(d);
-export const kstShort = (d: Date) => fmt({ month: "numeric", day: "numeric" }).format(d).replace(/\s/g, "").replace(/\.$/, "");
+export const kstTime = (d: Date) => TIME.format(d);
+export const kstDayLabel = (d: Date) => DAY_LABEL.format(d);
+export const kstShort = (d: Date) => SHORT.format(d).replace(/\s/g, "").replace(/\.$/, "");
 
 export function relative(target: Date, now: Date): string {
   const s = Math.round((target.getTime() - now.getTime()) / 1000);
