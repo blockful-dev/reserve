@@ -196,8 +196,9 @@ def collect_main(args: list[str]) -> None:
 
 
 class PendingAlarms:
-    """자동 모드의 정각 알림. 감시 루프를 막지 않도록 알림(소리·출력)은 별도 스레드가 정각에 내고,
-    브라우저 조작(창 하나뿐이라 스레드 간 공유 불가)은 감시가 끝난 뒤 drain()에서 순서대로 한다."""
+    """자동 모드의 정각 알림. 감시 루프를 막지 않도록 알림(소리·출력)은 별도 스레드가 정각에 낸다.
+    브라우저 조작은 창이 하나뿐이라 스레드 간 공유가 안 된다 — 감시 루프가 쉬는 자리마다 pump()로 정각이 된 것을
+    같은 스레드에서 처리하고, 감시가 끝나면 drain()이 남은 것을 기다려 처리한다."""
 
     def __init__(self, now, sleep, notify):
         self.now, self.sleep, self.notify, self.items = now, sleep, notify, []
@@ -205,12 +206,17 @@ class PendingAlarms:
     def add(self, target: Target, d: date, when: datetime, msg: str) -> None:
         th = threading.Thread(target=lambda: (sleep_until(when, self.now, self.sleep), self.notify(target, d, msg)), daemon=True)
         th.start()
-        self.items.append((target, d, msg, th))
+        self.items.append((target, d, when, msg, th))
+
+    def pump(self, handle) -> None:
+        while due := next((i for i in self.items if i[2] <= self.now()), None):
+            self.items.remove(due)
+            handle(due[0], due[1], due[3])
 
     def drain(self, handle) -> None:
-        for target, d, msg, th in self.items:
-            th.join()  # 정각 알림이 나간 뒤에 브라우저 처리
-            handle(target, d, msg)
+        while self.items:
+            self.items[0][4].join()  # 정각 알림이 나간 뒤에 브라우저 처리
+            self.pump(handle)
 
 
 def run_auto(items: list[Item], client: Client) -> None:
@@ -257,7 +263,11 @@ def run_auto(items: list[Item], client: Client) -> None:
         alarms = PendingAlarms(now, time.sleep, lambda t, d, msg: alert(f"{t.shop} {d:%m/%d}", msg, "Glass"))
 
         print(f"[{now():%m-%d %H:%M:%S}] {target.shop} {open_at:%m-%d %H:%M:%S} 오픈 대기 중 (자동 모드, 예약하기 직전까지)… Ctrl+C로 중단", flush=True)
-        watch(targets, ref, open_at, client, now=now, sleep=time.sleep, finish=finish_auto, prepare=prepare_auto, alarm_at=alarms.add)
+        def sleep_pumping(seconds: float) -> None:  # 폴링이 30초 더 이어져도 정각 알림 대상은 정각에 브라우저로 처리
+            alarms.pump(finish_auto)
+            time.sleep(seconds)
+
+        watch(targets, ref, open_at, client, now=now, sleep=sleep_pumping, finish=finish_auto, prepare=prepare_auto, alarm_at=alarms.add)
         alarms.drain(finish_auto)
         print("창을 10분 동안 열어둡니다. 7분 예약 찜 안에 예약하기를 누르세요.", flush=True)
         time.sleep(600)

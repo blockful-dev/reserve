@@ -93,6 +93,24 @@ def test_pending_alarms_do_not_block_and_drain_in_order():
     assert notified == [A.dates[0]] and handled == [(A.dates[0], "정각")]
 
 
+def test_pending_alarms_are_handled_while_the_watch_loop_is_still_polling():
+    # 지적: 정각 알림 대상의 브라우저 처리는 watch()가 끝난 뒤에야 돌아, 폴링이 시간 초과까지 가면 30초 넘게 늦었다.
+    # 감시 루프의 sleep 자리에서 pump()를 불러 정각이 된 것부터 처리한다 (같은 스레드 — 브라우저 창은 스레드 간 공유 불가)
+    import time
+    from datetime import datetime, timedelta, timezone
+    handled = []
+    handle = lambda t, d, msg: handled.append(msg)
+    alarms = m.PendingAlarms(now=lambda: datetime.now(timezone.utc), sleep=time.sleep, notify=lambda t, d, msg: None)
+    alarms.add(A, A.dates[0], datetime.now(timezone.utc) + timedelta(seconds=0.2), "정각")
+    alarms.pump(handle)
+    assert handled == []  # 아직 정각 전
+    time.sleep(0.3)
+    alarms.pump(handle)
+    assert handled == ["정각"]
+    alarms.drain(handle)
+    assert handled == ["정각"]  # 두 번 처리하지 않는다
+
+
 @pytest.mark.parametrize("argv", [["--limit"], ["--limit", "abc"], ["--regions"], ["--foods"], ["nonsense"]])
 def test_collect_cli_rejects_bad_arguments_with_a_message(monkeypatch, argv):
     # 지적: 옵션 뒤 값이 없거나 숫자가 아니면 IndexError/ValueError 트레이스백으로 죽었다

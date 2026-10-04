@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { EventRow } from "@/lib/regions";
 import { REGIONS } from "@/lib/regions";
+import { restorable, serialize } from "@/lib/restore";
 import { kstDate, kstDayLabel, kstTime, relative, targetLabel } from "@/lib/time";
 
 type Props = { initial: EventRow[]; initialCursor: string | null; now: string };
@@ -24,11 +25,9 @@ export default function EventList({ initial, initialCursor, now: serverNow }: Pr
       setNow(new Date());
       setState((s) => {
         if (s.restored) return s;
-        try {
-          const saved = sessionStorage.getItem(key);
-          if (saved) { const j = JSON.parse(saved); if (j.rows.length > s.rows.length) return { rows: j.rows, cursor: j.cursor, restored: true }; }
-        } catch {}
-        return { ...s, restored: true };
+        let saved = null;
+        try { saved = restorable(sessionStorage.getItem(key), s.rows, Date.now()); } catch {}
+        return saved ? { ...saved, restored: true } : { ...s, restored: true };
       });
     };
     const t = setInterval(tick, 30_000);
@@ -36,7 +35,7 @@ export default function EventList({ initial, initialCursor, now: serverNow }: Pr
     return () => { clearInterval(t); clearTimeout(first); };
   }, [key]);
   // 복원이 끝난 뒤에만 저장한다 — 마운트 직후 초기 목록으로 저장본을 덮어쓰면 복원할 게 없어진다
-  useEffect(() => { if (state.restored) try { sessionStorage.setItem(key, JSON.stringify({ rows, cursor })); } catch {} }, [key, rows, cursor, state.restored]);
+  useEffect(() => { if (state.restored) try { sessionStorage.setItem(key, serialize({ rows, cursor }, Date.now())); } catch {} }, [key, rows, cursor, state.restored]);
 
   const loadMore = async () => {
     if (!cursor || loading) return;

@@ -108,6 +108,32 @@ def test_book_reaches_form_through_menu_set_and_quantity_screen(browser):
         page.close()
 
 
+def test_book_stops_instead_of_switching_to_another_payment_method(browser):
+    # 지적: '직접 결제'를 골랐는데 '다음'이 비활성이면 다른 라디오를 차례로 눌러 자동결제로 바뀐 채 준비 완료를 돌려줬다
+    page = browser.new_page()
+    try:
+        shop = """
+          <button id="slot">오후 5:30</button>
+          <div role="dialog" aria-label="결제 방식 선택" id="pay" hidden>
+            <label>매장에서 직접 결제<input type="radio" name="p" id="direct"></label>
+            <label>예약금 0원 + 자동결제<input type="radio" name="p" id="auto"></label>
+            <button id="next" disabled>다음</button>
+          </div>
+          <script>
+            document.querySelector('#slot').onclick = () => document.querySelector('#pay').hidden = false;
+            document.querySelector('#auto').onchange = () => document.querySelector('#next').disabled = false;
+            document.querySelector('#next').onclick = () => location.href = '/ct/reservation/form';
+          </script>
+        """
+        page.route("**/ct/shop/fake*", lambda route: route.fulfill(body=shop.encode(), content_type="text/html; charset=utf-8"))
+        page.route("**/ct/reservation/form*", lambda route: route.fulfill(body="<button>자동결제로 예약하기</button>".encode(), content_type="text/html; charset=utf-8"))
+        result = book(page, "https://app.catchtable.co.kr/ct/shop/fake?personCount=2&date=261003", pay="직접", log=lambda message: None)
+        assert not result.ok and result.step == "payment"
+        assert not page.locator("#auto").is_checked() and "/ct/reservation/form" not in page.url
+    finally:
+        page.close()
+
+
 def _slots_page(page, buttons_html):
     page.route("**/ct/shop/slots*", lambda route: route.fulfill(body=buttons_html.encode(), content_type="text/html; charset=utf-8"))
     page.goto("https://app.catchtable.co.kr/ct/shop/slots?personCount=2&date=261003")

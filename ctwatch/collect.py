@@ -22,18 +22,19 @@ def pause() -> float:
 
 def budget(limit: int | None, ip: str | None, used: int = 0) -> int | None:
     """이 실행의 요청 예산. 집 IP면 하루 상한에서 지난 24시간에 쓴 만큼 뺀다. limit=0은 0이다(None과 다름)."""
-    if ip and ip.startswith(HOME_IP_PREFIXES):
+    if ip is None or ip.startswith(HOME_IP_PREFIXES):  # IP를 모르면(조회 실패) 집이라고 본다
         left = max(0, HOME_CAP - used)
         return left if limit is None else min(limit, left)
     return limit
 
 
 def used_recently(conn: Connection) -> int:
-    """지난 24시간 runs가 쓴 요청 수: health 1건, 일정 done+errors, 목록 pages."""
+    """지난 24시간 runs가 쓴 요청 수. 각 run이 요청을 보내기 직전에 stats.requests를 올려 저장하므로(Run.spend)
+    중간에 죽은 실행과 실패한 요청도 들어간다. requests가 없는 옛 행은 health 1건, 일정 done+errors, 목록 pages로 센다."""
     total = 0
     for r in conn.execute("select kind, stats from runs where started_at > clock_timestamp() - interval '24 hours'"):
         st = r["stats"]
-        total += 1 if r["kind"] == "health" else st.get("done", 0) + st.get("errors", 0) + st.get("pages", 0)
+        total += st["requests"] if "requests" in st else 1 if r["kind"] == "health" else st.get("done", 0) + st.get("errors", 0) + st.get("pages", 0)
     return total
 
 
@@ -48,6 +49,7 @@ def health(conn: Connection, client: Client, ip=public_ip) -> Run:
     """요청 1건으로 차단 여부 확인. 결과를 runs(kind='health')에 남겨 웹이 표시하고, 차단 중이면 수집을 건너뛴다."""
     run = Run(conn, "health")
     run.stats = {"ip": ip()}
+    run.spend()
     # 확인 대상은 DB에 있는 다이닝 식당 하나. 아직 없으면(첫 실행) 밍글스
     r = conn.execute("select alias from shops where service='DINING' and state is distinct from 'GONE' and alias is not null order by last_seen_at desc limit 1").fetchone()
     alias = r["alias"] if r else "mingles"
@@ -82,8 +84,16 @@ class Run:
         self.id = conn.execute("insert into runs (kind) values (%s) returning id", (kind,)).fetchone()["id"]
         conn.commit()
 
+    def spend(self) -> None:
+        """요청 1건을 보내기 직전에 센다. 바로 저장해, 실행이 중간에 죽어도 하루 예산 집계에 남는다."""
+        self.stats["requests"] = self.stats.get("requests", 0) + 1
+        self.conn.execute("update runs set stats=%s where id=%s", (json.dumps(self.stats), self.id))
+        self.conn.commit()
+
     def finish(self, ok: bool, error: str | None = None) -> None:
         self.ok = ok
+        if not ok:
+            self.conn.rollback()  # DB 오류로 깨진 트랜잭션 위에서는 아래 update도 실패한다
         self.conn.execute("update runs set finished_at=clock_timestamp(), ok=%s, stats=%s, error=%s where id=%s", (ok, json.dumps(self.stats), error, self.id))
         self.conn.commit()
 
@@ -110,7 +120,8 @@ def popularity_fields(m: dict, sold_out_days: int | None) -> dict:
 
 
 def upsert_shop(conn: Connection, m: dict, region_code: str, days: list[dict] | None = None) -> bool:
-    """검색 결과 shopMeta 하나를 저장. 처음 보는 식당이면 True. days = 검색 결과의 14일 가용성(dailySlotList)."""
+    """검색 결과 shopMeta 하나를 저장(커밋은 호출자가 — 목록 훑기는 페이지 단위). 처음 보는 식당이면 True.
+    days = 검색 결과의 14일 가용성(dailySlotList)."""
     coord = m.get("shopCoord") or {}
     images = m.get("images") or []
     image = (images[0].get("thumbUrl") or images[0].get("imgUrl")) if images and isinstance(images[0], dict) else None
@@ -128,15 +139,28 @@ def upsert_shop(conn: Connection, m: dict, region_code: str, days: list[dict] | 
              review_count=coalesce(excluded.review_count, shops.review_count), avg_score=coalesce(excluded.avg_score, shops.avg_score),
              awards=excluded.awards, sold_out_days=coalesce(excluded.sold_out_days, shops.sold_out_days),
              last_seen_at=clock_timestamp(), missed_sweeps=0
-           returning (xmax = 0) as inserted, schedule_kind""",
+           returning (xmax = 0) as inserted, schedule_kind, review_count, avg_score, awards, sold_out_days""",
         (m["shopRef"], m.get("urlPathAlias"), m["shopName"], m.get("landName"), m.get("foodKind"), region_code,
          coord.get("lat"), coord.get("lon"), image, m.get("mainService"), m.get("state"),
          pop["review_count"], pop["avg_score"], pop["awards"], pop["sold_out_days"]),
     ).fetchone()
+    # 점수는 저장된 최종 값으로: 응답에 리뷰 필드가 빠져도 위 coalesce가 지킨 값으로 계산한다
     conn.execute("update shops set popularity=%s where ref=%s",
-                 (popularity(pop["review_count"], pop["avg_score"], pop["awards"], pop["sold_out_days"], row["schedule_kind"]), m["shopRef"]))
-    conn.commit()
+                 (popularity(row["review_count"], row["avg_score"], row["awards"], row["sold_out_days"], row["schedule_kind"]), m["shopRef"]))
     return row["inserted"]
+
+
+def fill_regions(conn: Connection) -> int:
+    """서울 전체(CAT011)로만 발견돼 세부 지역이 없는 식당에, 좌표가 가장 가까운 식당의 지역을 준다 (요청 0건).
+    기존 식당 600곳 표본에서 599곳이 실제 지역과 일치했다(2026-10-05). 나중에 지역별 훑기가 보면 실제 값으로 덮인다."""
+    n = conn.execute(
+        """update shops s set region_code = n.region_code
+           from shops s2 cross join lateral (
+             select o.region_code from shops o where o.region_code <> 'CAT011' and o.lat is not null
+             order by (o.lat - s2.lat) ^ 2 + (o.lon - s2.lon) ^ 2 limit 1) n
+           where s.ref = s2.ref and s.region_code = 'CAT011' and s.lat is not null""").rowcount
+    conn.commit()
+    return n
 
 
 def sweep_list(conn: Connection, client: Client, sleep=time.sleep, regions: list[str] | None = None, foods: list[str] | None = None,
@@ -148,30 +172,38 @@ def sweep_list(conn: Connection, client: Client, sleep=time.sleep, regions: list
     """
     combos = [("CAT011", f) for f in foods] if foods else [(r, None) for r in (regions or [*SEOUL_REGIONS, "CAT011"])]
     partial = bool(regions or foods)
-    prev = conn.execute("select stats from runs where kind='list' and ok order by id desc limit 1").fetchone()
+    # 재개 위치는 실패했거나 중간에 죽은 훑기에서도 이어받는다 (요청 직전마다 저장된다)
+    prev = conn.execute("select stats from runs where kind='list' order by id desc limit 1").fetchone()
     resume = (prev or {}).get("stats", {}).get("resume") or {}
     if resume.get("combos") != [list(c) for c in combos]:
         resume = {}
     run = Run(conn, "list")
     chain_started = resume.get("chain_started") or conn.execute("select started_at from runs where id=%s", (run.id,)).fetchone()["started_at"].isoformat()
-    seen, new, pages, truncated = set(), 0, 0, False
+    seen, truncated = set(), False
     ci, offset = resume.get("combo", 0), resume.get("offset", "0")
+    st = run.stats = {"pages": 0, "seen": 0, "new": 0, "requests": 0}
     try:
         while ci < len(combos) and not truncated:
             code, food = combos[ci]
             while offset is not None:
-                if max_pages is not None and pages >= max_pages:
+                if max_pages is not None and st["requests"] >= max_pages:
                     truncated = True
                     break
-                entries, offset = client.search_page(code, offset, food)
-                pages += 1
-                for e in entries:
-                    m = e["shopMeta"]
-                    if m["shopRef"] in seen:
-                        continue
-                    seen.add(m["shopRef"])
-                    days = ((e.get("dining") or {}).get("multipleDatesSlotInfo") or {}).get("dailySlotList")
-                    new += upsert_shop(conn, m, code, days)
+                st["resume"] = {"combo": ci, "offset": offset, "combos": [list(c) for c in combos], "chain_started": chain_started}
+                run.spend()
+                entries, nxt = client.search_page(code, offset, food)
+                new = 0
+                with conn.transaction():  # 페이지는 통째로 저장되거나 통째로 빠진다 — 재개 위치와 어긋나지 않게
+                    for e in entries:
+                        m = e["shopMeta"]
+                        if m["shopRef"] in seen:
+                            continue
+                        seen.add(m["shopRef"])
+                        days = ((e.get("dining") or {}).get("multipleDatesSlotInfo") or {}).get("dailySlotList")
+                        new += upsert_shop(conn, m, code, days)
+                conn.commit()
+                offset = nxt
+                st.update(pages=st["pages"] + 1, seen=len(seen), new=st["new"] + new)
                 sleep(pause())
             if not truncated:
                 ci, offset = ci + 1, "0"
@@ -180,13 +212,14 @@ def sweep_list(conn: Connection, client: Client, sleep=time.sleep, regions: list
             conn.execute("update shops set missed_sweeps = missed_sweeps + 1 where last_seen_at < %s", (chain_started,))
             gone = conn.execute("update shops set state='GONE' where missed_sweeps >= %s and state is distinct from 'GONE' returning ref", (GONE_AFTER,)).rowcount
         conn.commit()
-        run.stats = {"pages": pages, "seen": len(seen), "new": new, "gone": gone, "combos": len(combos)}
+        st.update(gone=gone, combos=len(combos), regions_filled=fill_regions(conn))
         if truncated:
-            run.stats.update(truncated=True, resume={"combo": ci, "offset": offset, "combos": [list(c) for c in combos], "chain_started": chain_started})
+            st.update(truncated=True, resume={"combo": ci, "offset": offset, "combos": [list(c) for c in combos], "chain_started": chain_started})
+        else:
+            st.pop("resume", None)
         run.finish(True)
     except Exception as e:
-        run.stats = {"pages": pages, "seen": len(seen), "new": new}
-        run.finish(False, repr(e))
+        run.finish(False, repr(e))  # stats.resume = 실패한 페이지: 다음 훑기가 거기서부터
     return run
 
 
@@ -249,6 +282,7 @@ def sweep_schedules(conn: Connection, client: Client, sleep=time.sleep, limit: i
     run.stats = {"due": len(refs), "done": 0, "kinds": kinds, "errors": 0, "skipped": skipped}
     try:
         for ref in refs:
+            run.spend()
             try:
                 schedules = client.open_schedules(ref)
             except Exception as e:
@@ -295,7 +329,7 @@ def collect(conn: Connection, client: Client, what: str = "auto", limit: int | N
         if not runs[-1].ok:
             return runs  # 차단(403/429)이나 연속 실패로 끝났다: 목록까지 두드리지 않는다
         if limit is not None:
-            limit = max(0, limit - runs[-1].stats.get("done", 0) - runs[-1].stats.get("errors", 0))
+            limit = max(0, limit - runs[-1].stats.get("requests", 0))
     if (what in ("list", "all") or (what == "auto" and list_due(conn))) and limit != 0:
         runs.append(sweep_list(conn, client, sleep, regions=regions, foods=foods, max_pages=limit))
     return runs

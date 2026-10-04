@@ -234,6 +234,9 @@ def book(page: Page, url: str, *, times: list[str] | None = None, table: str | N
         if not nxt.count():
             trace({"kind": "unknown-dialog", **describe_dialog(box)})
             return Result(False, "dialog", f"처리 못 한 드로어: {title}")
+        if nxt.last.is_disabled() and "결제" in title:  # 결제 방식은 다른 옵션으로 바꾸지 않는다 — 요청과 다른 결제로 예약되면 안 된다
+            trace({"kind": "payment-unavailable", **describe_dialog(box)})
+            return Result(False, "payment", f"요청한 결제 방식({pay})으로 진행할 수 없음 — 직접 확인")
         if nxt.last.is_disabled() and box.get_by_role("radio").count():  # 고른 옵션이 막혀 있으면(만석 등) 다른 옵션을 순서대로
             for r in box.get_by_role("radio").all():
                 _click(r); page.wait_for_timeout(200)

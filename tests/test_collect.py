@@ -216,6 +216,7 @@ def test_schedule_kind_change_updates_popularity(conn):
 def test_list_sweep_respects_page_budget_and_resumes_next_time(conn):
     # 지적: 목록 훑기는 예산을 안 받아 집 IP에서 600건도 그대로 나갔다. 예산에 걸리면 멈추고, 다음 실행이 이어서 돈다
     C.upsert_shop(conn, meta("OLD"), "CAT011001")  # 이번 체인에서 못 보면 결국 GONE
+    conn.commit()  # upsert_shop은 커밋하지 않는다(페이지 단위 커밋) — 체인 시작 전에 저장된 식당이어야 한다
     pages = {("CAT011001", "0"): (PAGE[:2], None), ("CAT011002", "0"): (PAGE[2:4], "n"), ("CAT011002", "n"): (PAGE[4:], None)}
     fc = FakeClient(pages=pages)
     # 전체 훑기(지역 10 + 상위 1 = 조합 11개). 데이터가 있는 건 앞 두 조합뿐, 나머지는 빈 페이지 1건씩
@@ -332,3 +333,67 @@ def test_old_past_events_are_pruned_after_a_sweep(conn):
     conn.execute("update shops set schedule_checked_at=now(), schedule_kind='NONE'"); conn.commit()
     C.sweep_schedules(conn, Fc(), sleep=lambda s: None)
     assert [r["opens_at"].year for r in conn.execute("select opens_at from open_events order by opens_at").fetchall()] == [2030]
+
+
+def test_unknown_ip_gets_the_home_cap(conn):
+    # 지적: IP 조회가 실패하면 집 회선 상한이 통째로 빠졌다. 모르면 집이라고 본다
+    assert C.budget(None, None, used=0) == 200
+    assert C.budget(500, None, used=150) == 50
+
+
+def test_requests_are_counted_before_they_are_sent_even_if_the_run_dies(conn):
+    # 지적: 실행이 중간에 죽으면 이미 보낸 요청이 하루 집계에서 빠졌다
+    for ref in ("A", "B", "C"):
+        C.upsert_shop(conn, meta(ref), "CAT011001")
+    conn.commit()
+    class Dies:
+        n = 0
+        def open_schedules(self, ref):
+            Dies.n += 1
+            if Dies.n == 2: raise KeyboardInterrupt
+            return []
+    with pytest.raises(KeyboardInterrupt):
+        C.sweep_schedules(conn, Dies(), sleep=lambda s: None)
+    conn.rollback()
+    assert C.used_recently(conn) == 2
+
+
+def test_failed_list_request_is_counted_and_resumed_from_the_failed_page(conn):
+    # 지적: 실패한 목록 요청이 pages에 안 들어갔고, 재개 위치도 없어 처리한 페이지를 다시 요청했다
+    pages = {("CAT011001", "0"): (PAGE[:2], "n"), ("CAT011001", "n"): (PAGE[2:4], "m"), ("CAT011001", "m"): (PAGE[4:], None)}
+    r1 = C.sweep_list(conn, FakeClient(pages=pages, fail_after=1), sleep=lambda s: None, regions=["CAT011001"])
+    assert r1.ok is False and r1.stats["requests"] == 2 and r1.stats["resume"]["offset"] == "n"
+    seen = []
+    class Rec(FakeClient):
+        def search_page(self, code, offset="0", food=None):
+            seen.append(offset); return super().search_page(code, offset, food)
+    r2 = C.sweep_list(conn, Rec(pages=pages), sleep=lambda s: None, regions=["CAT011001"])
+    assert r2.ok and seen == ["n", "m"]  # 첫 페이지를 다시 요청하지 않는다
+    assert conn.execute("select count(*) as n from shops").fetchone()["n"] == 5
+
+
+def test_db_error_during_a_sweep_still_closes_the_run_as_failed(conn):
+    # 지적: DB 오류 뒤 롤백 없이 실패 이력을 쓰려다 또 죽어, 실행이 '미완료'로 남았다
+    bad = {"shopMeta": meta("BAD", name=None)}  # name not null 위반
+    run = C.sweep_list(conn, FakeClient(pages={("CAT011001", "0"): ([PAGE[0], bad], None)}), sleep=lambda s: None, regions=["CAT011001"])
+    r = conn.execute("select ok, finished_at, error from runs where id=%s", (run.id,)).fetchone()
+    assert r["ok"] is False and r["finished_at"] is not None and "NotNull" in r["error"]
+    assert conn.execute("select count(*) as n from shops").fetchone()["n"] == 0  # 페이지는 통째로 저장되거나 통째로 빠진다
+
+
+def test_popularity_survives_a_response_missing_review_fields(conn):
+    # 지적: 리뷰 수·평점은 기존 값을 지키면서 인기 점수만 빠진 응답 값으로 다시 계산해 NULL이 됐다
+    C.upsert_shop(conn, {**meta("X"), "reviewCount": 100, "avgScore": 4.5}, "CAT011001")
+    C.upsert_shop(conn, meta("X"), "CAT011001")
+    r = conn.execute("select review_count, popularity from shops where ref='X'").fetchone()
+    assert r["review_count"] == 100 and float(r["popularity"]) == C.popularity(100, 4.5, [], None, None)
+
+
+def test_seoul_wide_shops_get_the_region_of_their_nearest_neighbour(conn):
+    # 음식별 훑기(CAT011)로만 발견된 식당은 세부 지역이 없어 지역 필터에서 빠졌다 → 좌표가 가장 가까운 식당의 지역으로
+    near = {**meta("NEAR"), "shopCoord": {"lat": 37.50, "lon": 127.03}}
+    far = {**meta("FAR"), "shopCoord": {"lat": 37.57, "lon": 126.98}}
+    C.upsert_shop(conn, near, "CAT011001"); C.upsert_shop(conn, far, "CAT011006")
+    C.upsert_shop(conn, {**meta("NEW"), "shopCoord": {"lat": 37.501, "lon": 127.031}}, "CAT011")
+    assert C.fill_regions(conn) == 1
+    assert conn.execute("select region_code from shops where ref='NEW'").fetchone()["region_code"] == "CAT011001"

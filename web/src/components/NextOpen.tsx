@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { EventRow } from "@/lib/regions";
 import { kstDate, kstDayLabel, kstTime, targetLabel } from "@/lib/time";
 
@@ -19,6 +20,16 @@ export default function NextOpen({ event, now: serverNow }: { event: EventRow; n
     return () => clearInterval(t);
   }, []);
   const at = new Date(event.opens_at);
+  // 오픈 시각이 1분 지나면 서버에서 다음 오픈을 다시 받는다 — 안 하면 지난 식당이 계속 '지금'으로 남는다.
+  // 이벤트당 한 번만: 시계가 어긋나 서버가 같은 이벤트를 다시 줘도 새로고침을 반복하지 않는다
+  const router = useRouter();
+  const refreshed = useRef<number | null>(null);
+  const passed = now.getTime() - at.getTime() > 60_000;
+  useEffect(() => {
+    if (!passed || refreshed.current === event.id) return;
+    refreshed.current = event.id;
+    router.refresh();
+  }, [passed, event.id, router]);
   const today = kstDate(now) === kstDate(at);
   return (
     <section aria-label="다음 오픈" className="grid grid-cols-1 gap-x-10 gap-y-3 border-b border-line pb-8 pt-2 md:grid-cols-[auto_1fr] md:items-baseline">
