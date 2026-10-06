@@ -161,6 +161,20 @@ def test_pick_time_with_preferences_does_not_fall_back_to_any_open_slot(browser)
         page.close()
 
 
+def test_pick_time_by_position_counts_closed_slots_too(browser):
+    # "2번째" = 화면의 두 번째 시간(2부). 1부가 마감이어도 2부는 두 번째 버튼이다. 그 칸이 마감이면 다른 걸 잡지 않는다
+    from ctwatch.book import pick_time
+    page = browser.new_page()
+    try:
+        _slots_page(page, '<button disabled>오후 5:30</button><button>오후 8:00</button>')
+        assert pick_time(page, ["2번째"], lambda m: None) == "오후 8:00"
+        assert pick_time(page, ["1번째"], lambda m: None) is None
+        assert pick_time(page, ["3번째"], lambda m: None) is None
+        assert pick_time(page, ["20:30", "2번째"], lambda m: None) == "오후 8:00"  # 적은 순서대로 시도
+    finally:
+        page.close()
+
+
 def test_pick_time_waits_for_busy_slots_to_load(browser):
     from ctwatch.book import pick_time
     page = browser.new_page()

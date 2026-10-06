@@ -47,3 +47,11 @@ def test_times_and_table_for_auto_mode(tmp_path):
 def test_times_must_be_hh_mm(tmp_path):
     with pytest.raises(ValueError):
         load(write(tmp_path, "targets:\n  - shop: x\n    dates: [2026-12-24]\n    party: 2\n    times: [18]\n"))
+
+
+def test_times_accept_a_position_like_second_slot(tmp_path):
+    # 2부제 식당처럼 시각을 미리 모를 때: "2번째" = 화면의 두 번째 시간
+    t = load(write(tmp_path, "targets:\n  - shop: x\n    dates: [2026-12-24]\n    party: 2\n    times: ['20:00', '2번째']\n"))[0]
+    assert t.times == ("20:00", "2번째")
+    with pytest.raises(ValueError):
+        load(write(tmp_path, "targets:\n  - shop: x\n    dates: [2026-12-24]\n    party: 2\n    times: ['둘째']\n"))

@@ -115,7 +115,7 @@ def find_form_action(page: Page, pay: str):
 
 
 def pick_time(page: Page, times: list[str] | None, log) -> str | None:
-    """선호 시간 순서대로 눌러본다. 비어 있으면 열린 것 중 첫 번째."""
+    """선호 시간 순서대로 눌러본다("18:00" 또는 "2번째"). 비어 있으면 열린 것 중 첫 번째."""
     slots = page.get_by_role("button", name=re.compile(r"^오[전후] \d{1,2}:\d{2}$"))
     try:
         slots.first.wait_for(state="visible", timeout=6000)
@@ -129,7 +129,15 @@ def pick_time(page: Page, times: list[str] | None, log) -> str | None:
     enabled = [b for b in slots.all() if not b.is_disabled()]
     names = [b.inner_text().strip() for b in enabled]
     log(f"열린 시간: {names}")
+    every = slots.all()
     for t in times or []:
+        if t.endswith("번째"):  # 화면의 N번째 시간(마감 포함해서 센다 — 2부제의 2부). 그 칸이 마감이면 다른 걸 잡지 않는다
+            n = int(t[:-2])
+            b = every[n - 1] if n <= len(every) else None
+            if b is not None and not b.is_disabled():
+                _click(b)
+                return b.inner_text().strip()
+            continue
         want = time_label(t)
         for b in enabled:
             if b.inner_text().strip() == want:
@@ -176,7 +184,7 @@ def book(page: Page, url: str, *, times: list[str] | None = None, table: str | N
                 # 시간 클릭이 날짜·인원·시간 선택 시트를 여는 레이아웃: 시트 안의 시간 칩(뒤쪽에 그려짐)을 다시 누른다
                 chips = [c for c in page.get_by_role("button", name=re.compile(r"^오[전후] \d{1,2}:\d{2}$")).all() if c.is_visible() and not c.is_disabled()]
                 sheet_chips = chips[len(chips) // 2:] if len(chips) > 1 else chips
-                pick = next((c for t in (times or []) for c in sheet_chips if c.inner_text().strip() == time_label(t)), sheet_chips[0] if sheet_chips else None)
+                pick = next((c for t in (times or []) if ":" in t for c in sheet_chips if c.inner_text().strip() == time_label(t)), sheet_chips[0] if sheet_chips else None)
                 if pick is not None:
                     _click(pick); lg(f"시트에서 시간 선택: {pick.inner_text().strip()}"); continue
             if idle == 2:  # 시간을 골라도 드로어가 안 뜨는 레이아웃: 식당 페이지의 '예약하기' 버튼을 눌러야 진행된다
