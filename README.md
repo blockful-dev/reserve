@@ -57,6 +57,21 @@ uv run ctwatch collect [auto|list|schedules|all|health] [--limit N]
 ```
 watchlist 형식은 `watchlist.example.yaml`.
 
+`times`에는 시각(`'18:00'`) 대신 `'2번째'`처럼 화면 순서를 적을 수 있다. 시각을 미리 알 수 없는 2부제 식당용이다. 마감된 칸도 포함해 세고(1부가 마감이어도 2부는 두 번째), 그 칸이 마감이면 다른 시간을 잡지 않고 멈춘다. 여러 개를 적으면 적은 순서대로 시도한다.
+
+오픈 일정이 API에 없는 식당(예: 매일 11시에 당일분을 여는 곳)은 `open_at`을 직접 적는다. 검색에 노출되지 않아 목록에 없는 식당도 주소(`/ct/shop/<alias>`)만 알면 감시할 수 있다.
+
+```yaml
+targets:
+  - shop: sakabatorinyaong        # 토리냥: 매일 11:00에 당일분 오픈 (식당 소개 문구 기준)
+    dates: [2026-10-07]
+    party: 2
+    open_at: 2026-10-07 11:00     # 갈 날짜에 맞춰 dates와 함께 바꾼다
+    times: ['20:00', '2번째']      # 20:00 칸이 있으면 그것, 없으면 화면의 두 번째 시간
+```
+
+식당별 파일은 `watchlist-<이름>.yaml`로 두면 git에서 제외된다.
+
 ## 자동 실행 (launchd)
 
 매일 04:07 / 16:07 수집(250건 상한). 새 머신에서는 plist의 경로를 맞춘 뒤:
